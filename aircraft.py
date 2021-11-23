@@ -3,6 +3,7 @@ import h5py as h5
 import configobj
 import numpy as np
 from structure import FLEXOPStructure
+from fuselage import FLEXOPFuselage
 from aero import FLEXOPAero
 import os
 import sharpy.sharpy_main
@@ -21,11 +22,16 @@ class FLEXOP:
 
         self.settings = None
 
+
     def init_structure(self, **kwargs):
         self.structure = FLEXOPStructure(self.case_name, self.case_route, **kwargs)
 
     def init_aero(self, m, **kwargs):
         self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, **kwargs)
+
+    def init_fuselage(self, m, **kwargs):
+        self.aero = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, **kwargs)
+
     def set_flight_controls(self, thrust=0., elevator=0., rudder=0.):
         self.structure.set_thrust(thrust)
 
@@ -42,6 +48,9 @@ class FLEXOP:
 
         if self.aero is not None:
             self.aero.generate()
+        if self.fuselage is not None:
+            self.fuselage.generate()
+
 
     def create_settings(self, settings):
         file_name = self.case_route + '/' + self.case_name + '.sharpy'
