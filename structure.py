@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import h5py as h5
+import pandas as pd
 import numpy as np
 
 # Define all main parameters in the aircraft 
@@ -135,16 +136,16 @@ class FLEXOPStructure:
         if self.wing_only:
             self.lifting_only = True
 
-        # lumped  TODO: Update
-        n_lumped_mass = 1
+        # lumped masses
+        df_lumped_masses = self.read_lumped_masses()
+        n_lumped_mass = df_lumped_masses.shape[0]*2
         lumped_mass_nodes = np.zeros((n_lumped_mass, ), dtype=int)
         lumped_mass = np.zeros((n_lumped_mass, ))
-        lumped_mass[0] = 0 #TODO Adjust
+        # lumped_mass[0] = 0 # mass_take_off
         lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))
         lumped_mass_position = np.zeros((n_lumped_mass, 3))
         x_lumped_mass = 0.606 - offset_wing_nose
-
-        # total number of elements
+                # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
         if not self.wing_only:
             self.n_elem += self.n_elem_fuselage
@@ -301,6 +302,25 @@ class FLEXOPStructure:
             boundary_conditions[wn + self.n_node_main-1] = -1
         we += self.n_elem_main
         wn += self.n_node_main - 1
+
+
+        # Set lumped masses wing
+        for imass in range(int(n_lumped_mass/2)):
+            lumped_mass[imass] =  df_lumped_masses.iloc[imass, 1]
+            lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
+            lumped_mass_position[imass, 0] -= (0.5-0.140615385) *chord_root # adjust x=0 at LE
+            lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
+            lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 4]
+            lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], lumped_mass_position[imass,1])
+        
+            # Copy to symmetric wing
+            idx_symmetric = int(n_lumped_mass/2)+imass
+            lumped_mass[idx_symmetric] =  lumped_mass[imass]
+            lumped_mass_position[idx_symmetric, 0] = lumped_mass_position[imass, 0]
+            lumped_mass_position[idx_symmetric, 1] = -lumped_mass_position[imass, 1]
+            lumped_mass_position[idx_symmetric, 2] =  lumped_mass_position[imass, 2] 
+            lumped_mass_nodes[idx_symmetric] = self.n_node_main -1 + lumped_mass_nodes[imass]
+
         if not self.wing_only:
             ###############
             # fuselage
@@ -486,3 +506,9 @@ class FLEXOPStructure:
 
     def find_index_of_closest_entry(self, array_values, target_value):
         return (np.abs(array_values - target_value)).argmin()
+
+    def read_lumped_masses(self):
+        file = '../01_case_files/flexOp_data/lumped_masses.csv'
+        df = pd.read_csv(file, sep=';')
+        print(df.head())
+        return df
