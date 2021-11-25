@@ -3,7 +3,7 @@ import h5py as h5
 import numpy as np
 import pandas as pd
    
-
+n_nonlifting_bodies = 1
 
 class FLEXOPFuselage:
     def __init__(self, m, structure, case_name, case_route, **kwargs):
@@ -16,20 +16,21 @@ class FLEXOPFuselage:
 
         self.route = case_route
         self.case_name = case_name
+        self.n_nonlifting_bodies = n_nonlifting_bodies
 
     def generate(self): 
 
         structure = self.structure
 
-        self.n_elem = structure.self.n_elem
-        self.n_node_elem = structure.self.n_node_elem
-        self.n_node = structure.self.n_node
-        self.n_elem_main = structure.self.n_elem_main
-        self.n_node_main = structure.self.n_node_main
-        self.n_elem_fuselage = structure.self.n_elem_fuselage
-        self.n_node_fuselage = structure.self.n_node_fuselage
-        self.n_elem_tail = structure.self.n_elem_tail
-        self.n_node_tail = structure.self.n_node_tail
+        self.n_elem = structure.n_elem
+        self.n_node_elem = structure.n_node_elem
+        self.n_node = structure.n_node
+        self.n_elem_main = structure.n_elem_main
+        self.n_node_main = structure.n_node_main
+        self.n_elem_fuselage = structure.n_elem_fuselage
+        self.n_node_fuselage = structure.n_node_fuselage
+        self.n_elem_tail = structure.n_elem_tail
+        self.n_node_tail = structure.n_node_tail
 
 
         nonlifting_body_node = np.zeros((self.n_node,), dtype=bool)

@@ -81,40 +81,40 @@ class FLEXOPAero:
         self.sweep_TE_main = sweep_TE_main
 
 
-        self.wing_only = False
-        self.lifting_only = False
+        self.wing_only = True
+        self.lifting_only = True
 
         self.polars = kwargs.get('polars', None)
 
     def generate(self):
 
         n_surfaces = 2
-        if self.wing_only:
+        if not self.wing_only:
             n_surfaces += 2
 
         structure = self.structure
 
-        self.n_elem = structure.self.n_elem
-        self.n_node_elem = structure.self.n_node_elem
+        self.n_elem = structure.n_elem
+        self.n_node_elem = structure.n_node_elem
         n_control_surfaces = 2
-        self.n_elem_main = structure.self.n_elem_main
-        self.n_node_main = structure.self.n_node_main
+        self.n_elem_main = structure.n_elem_main
+        self.n_node_main = structure.n_node_main
         m = self.m
-        self.n_elem_fuselage = structure.self.n_elem_fuselage
-        self.n_node_fuselage = structure.self.n_node_fuselage
-        self.n_elem_tail = structure.self.n_elem_tail
-        self.n_node_tail = structure.self.n_node_tail
+        self.n_elem_fuselage = structure.n_elem_fuselage
+        self.n_node_fuselage = structure.n_node_fuselage
+        self.n_elem_tail = structure.n_elem_tail
+        self.n_node_tail = structure.n_node_tail
 
         # aero
-        airfoil_distribution = np.zeros((structure.self.n_elem, structure.self.n_node_elem), dtype=int)
-        surface_distribution = np.zeros((structure.self.n_elem,), dtype=int) - 1
+        airfoil_distribution = np.zeros((structure.n_elem, structure.n_node_elem), dtype=int)
+        surface_distribution = np.zeros((structure.n_elem,), dtype=int) - 1
         surface_m = np.zeros((n_surfaces, ), dtype=int)
         m_distribution = 'uniform'
-        aero_node = np.zeros((structure.self.n_node,), dtype=bool)
-        twist = np.zeros((structure.self.n_elem, structure.self.n_node_elem))
-        sweep = np.zeros((structure.self.n_elem, structure.self.n_node_elem))
-        chord = np.zeros((structure.self.n_elem, structure.self.n_node_elem,))
-        elastic_axis = np.zeros((structure.self.n_elem, structure.self.n_node_elem,))
+        aero_node = np.zeros((structure.n_node,), dtype=bool)
+        twist = np.zeros((structure.n_elem, structure.n_node_elem))
+        sweep = np.zeros((structure.n_elem, structure.n_node_elem))
+        chord = np.zeros((structure.n_elem, structure.n_node_elem,))
+        elastic_axis = np.zeros((structure.n_elem, structure.n_node_elem,))
 
         junction_boundary_condition_aero = np.zeros((1, n_surfaces), dtype=int) - 1
 
@@ -180,12 +180,12 @@ class FLEXOPAero:
         if self.lifting_only:
                 aero_node[wn:wn + self.n_node_main] = True
         else:
-            aero_node[wn:wn + self.n_node_main] = abs(self.y[wn:wn + self.n_node_main]) >= y_coord_junction  
+            aero_node[wn:wn + self.n_node_main] = abs(self.structure.y[wn:wn + self.n_node_main]) >= y_coord_junction  
  
-        n_node_junctions = int(3 + 2*(self.n_elem_junction_main-1))
+        n_node_junctions = int(3 + 2*(self.structure.n_elem_junction_main-1))
         junction_boundary_condition_aero[0, i_surf] = 1 # BC at fuselage junction
         temp_chord = np.zeros((self.n_node_main)) + self.chord_main_root
-        temp_chord[n_node_junctions:self.n_node_main] = abs(self.y[wn+n_node_junctions:wn +self.n_node_main]*np.tan(self.sweep_LE_main)-(self.chord_main_root + self.y[wn+n_node_junctions:wn + self.n_node_main]*np.tan(self.sweep_TE_main)))
+        temp_chord[n_node_junctions:self.n_node_main] = abs(self.structure.y[wn+n_node_junctions:wn +self.n_node_main]*np.tan(self.sweep_LE_main)-(self.chord_main_root + self.structure.y[wn+n_node_junctions:wn + self.n_node_main]*np.tan(self.sweep_TE_main)))
         temp_sweep = np.linspace(0.0, 0*np.pi/180, self.n_node_main)
 
         node_counter = 0
@@ -207,7 +207,7 @@ class FLEXOPAero:
                 # elastic_axis[i_elem, i_local_node] *= chord[i_elem, i_local_node]
                 sweep[i_elem, i_local_node] = temp_sweep[node_counter]
                 # get jig twist            
-                twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.y[wn + inode])
+                twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
                 if i_local_node == 1:
                     jigtwist_elem[i_elem] = np.rad2deg(twist[i_elem, i_local_node])
             global_node_counter += 2
@@ -220,15 +220,18 @@ class FLEXOPAero:
             for i_local_node in [0,2,1]:
                 if not i_local_node == 0:
                     node_counter += 1
-                if abs(self.y[node_counter]) == y_coord_ailerons[0] and i_local_node == 0:
+                if abs(self.structure.y[node_counter]) == y_coord_ailerons[0] and i_local_node == 0:
                     cs_surface = True 
                 if cs_surface:
-                    if abs(self.y[node_counter]) in y_coord_ailerons:
+                    if abs(self.structure.y[node_counter]) in y_coord_ailerons:
                         if i_local_node == 0:
                             cs_counter += 1
                     control_surface[i_elem, i_local_node] = cs_counter
-                if abs(self.y[node_counter]) >= y_coord_ailerons[-1]:
+                if abs(self.structure.y[node_counter]) >= y_coord_ailerons[-1]:
                     cs_surface = False
+
+        we += self.n_elem_main
+        wn += self.n_node_main - 1
         ###############
         # left wing
         ###############
@@ -241,7 +244,7 @@ class FLEXOPAero:
         if self.lifting_only:
             aero_node[wn:wn + self.n_node_main] = True
         else:
-            aero_node[wn:wn + self.n_node_main] = self.y[wn:wn + self.n_node_main] <= -y_coord_junction
+            aero_node[wn:wn + self.n_node_main] = self.structure.y[wn:wn + self.n_node_main] <= -y_coord_junction
 
         junction_boundary_condition_aero[0, i_surf] = 0 # BC at fuselage junction
         temp_chord = temp_chord
@@ -270,14 +273,14 @@ class FLEXOPAero:
             for i_local_node in [0,2,1]:
                 if not i_local_node == 0:
                     node_counter += 1
-                if abs(self.y[node_counter]) == y_coord_ailerons[0] and i_local_node == 0:
+                if abs(self.structure.y[node_counter]) == y_coord_ailerons[0] and i_local_node == 0:
                     cs_surface = True 
                 if cs_surface:
-                    if abs(self.y[node_counter]) in y_coord_ailerons:
+                    if abs(self.structure.y[node_counter]) in y_coord_ailerons:
                         if i_local_node == 0:
                             cs_counter += 1
                     control_surface[i_elem, i_local_node] = cs_counter
-                if abs(self.y[node_counter]) >= y_coord_ailerons[-1]:
+                if abs(self.structure.y[node_counter]) >= y_coord_ailerons[-1]:
                     cs_surface = False
             
         we += self.n_elem_main
@@ -304,10 +307,10 @@ class FLEXOPAero:
             if self.lifting_only:
                 aero_node[wn:wn + self.n_node_tail] = True
             else:
-                aero_node[wn:wn + self.n_node_tail] = self.y[wn:wn + self.n_node_tail] >= 0.04
+                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04
             junction_boundary_condition_aero[0, i_surf] = 3 # BC at fuselage junction
             
-            temp_chord = self.chord_tail_root - abs(self.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_LE)) + abs(self.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_TE))
+            temp_chord = self.chord_tail_root - abs(self.structure.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_LE)) + abs(self.structure.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_TE))
  
             node_counter = 0
             for i_elem in range(we, we + self.n_elem_tail):
@@ -332,17 +335,17 @@ class FLEXOPAero:
                 for i_local_node in range(3):
                     if not i_local_node == 0:
                         node_counter += 1
-                    if abs(self.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
+                    if abs(self.structure.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
                         cs_surface = True 
                     if cs_surface:
-                        if abs(self.y[node_counter]) in y_coord_elevators:
+                        if abs(self.structure.y[node_counter]) in y_coord_elevators:
                             if i_local_node == 0:
                                 if cs_counter == -1:
                                     cs_counter = 4
                                 else:
                                     cs_counter += 1
                         control_surface[i_elem, i_local_node] = cs_counter
-                    if abs(self.y[node_counter]) >= y_coord_elevators[-1]:
+                    if abs(self.structure.y[node_counter]) >= y_coord_elevators[-1]:
                         cs_surface = False
             we += self.n_elem_tail
             wn += self.n_node_tail
@@ -354,12 +357,12 @@ class FLEXOPAero:
             airfoil_distribution[we:we + self.n_elem_tail, :] = 2
             surface_distribution[we:we + self.n_elem_tail] = i_surf
             surface_m[i_surf] = m
-            aero_node[wn:wn + self.n_node_tail] = self.y[wn:wn + self.n_node_tail] <= -0.04
+            aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] <= -0.04
 
             if self.lifting_only:
                 aero_node[wn:wn + self.n_node_tail] = True
             else:
-                aero_node[wn:wn + self.n_node_tail] = self.y[wn:wn + self.n_node_tail] <= -0.04
+                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] <= -0.04
             junction_boundary_condition_aero[0, i_surf] = 2 # BC at fuselage junction
             node_counter = 0
             for i_elem in range(we, we + self.n_elem_tail):
@@ -386,17 +389,17 @@ class FLEXOPAero:
                 for i_local_node in range(3):
                     if not i_local_node == 0:
                         node_counter += 1
-                    if abs(self.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
+                    if abs(self.structure.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
                         cs_surface = True 
                     if cs_surface:
-                        if abs(self.y[node_counter]) in y_coord_elevators:
+                        if abs(self.structure.y[node_counter]) in y_coord_elevators:
                             if i_local_node == 0:
                                 if cs_counter == -1:
                                     cs_counter = 4
                                 else:
                                     cs_counter += 1
                         control_surface[i_elem, i_local_node] = cs_counter
-                    if abs(self.y[node_counter]) >= y_coord_elevators[-1]:
+                    if abs(self.structure.y[node_counter]) >= y_coord_elevators[-1]:
                         cs_surface = False
             we -= self.n_elem_tail
             wn -= self.n_node_tail
@@ -496,3 +499,6 @@ class FLEXOPAero:
         #file = "../01_case_files/FlexOp_Data_Jurij/camber_line_airfoils.csv"
         camber_line = pd.read_csv(file, sep = ";")
         return np.array(camber_line.iloc[:,0]), np.array(camber_line.iloc[:,1])
+
+    def find_index_of_closest_entry(self, array_values, target_value):
+        return (np.abs(array_values - target_value)).argmin()

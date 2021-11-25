@@ -84,16 +84,16 @@ class FLEXOPStructure:
         self.z = None
 
         self.n_elem_main = None
-        self.self.n_elem_root_main = None
-        self.self.n_elem_junction_main = None
-        self.self.n_elem_per_aileron = None
-        self.self.n_elem_tip_main = None
+        self.n_elem_root_main = None
+        self.n_elem_junction_main = None
+        self.n_elem_per_aileron = None
+        self.n_elem_tip_main = None
 
         self.n_elem_fuselage = None
 
         self.n_elem_tail = None
-        self.self.n_elem_per_elevator = None
-        self.self.n_elem_junction_tail = None
+        self.n_elem_per_elevator = None
+        self.n_elem_junction_tail = None
 
         self.n_node_main = None
         self.n_node_fuselage = None
@@ -103,14 +103,15 @@ class FLEXOPStructure:
         self.span_tail = span_tail
         self.y_coord_junction = y_coord_junction # Radius fuselage at wing
 
-        self.wing_only = False
-        self.lifting_only = False
+        self.wing_only = True
+        self.lifting_only = True
 
         self.n_stiffness_wing = n_stiffness_wing
         self.n_ailerons_per_wing = numb_ailerons
         self.n_elev_per_tail_surf = numb_elevators
         self.v_tail_angle = v_tail_angle
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
+        self.sweep_quarter_chord = sweep_quarter_chord
 
     def set_thrust(self, value):
         self.thrust = value
@@ -411,12 +412,6 @@ class FLEXOPStructure:
             boundary_conditions[wn + self.n_node_tail - 2] = -1
             we += self.n_elem_tail
             wn += self.n_node_tail - 1
-
-
-        conn[we, 0] =  index_tail_start 
-        boundary_conditions[wn + self.n_node_tail - 2] = -1
-        we += self.n_elem_tail
-        wn += self.n_node_tail - 1
 
         with h5.File(self.route + '/' + self.case_name + '.fem.h5', 'a') as h5file:
             h5file.create_dataset('coordinates', data=np.column_stack((self.x, self.y, self.z)))
