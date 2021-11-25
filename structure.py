@@ -188,7 +188,7 @@ class FLEXOPStructure:
         frame_of_reference_delta = np.zeros((self.n_elem, self.n_node_elem, 3))
         conn = np.zeros((self.n_elem, self.n_node_elem), dtype=int)
         stiffness = np.zeros((n_stiffness, 6, 6))
-        elem_stiffness = np.zeros((self.n_elem, ), dtype=int)
+        self.elem_stiffness = np.zeros((self.n_elem, ), dtype=int)
         mass = np.zeros((n_mass, 6, 6))
         elem_mass = np.zeros((self.n_elem, ), dtype=int)
         boundary_conditions = np.zeros((self.n_node, ), dtype=int)
@@ -236,7 +236,7 @@ class FLEXOPStructure:
         self.x[wn+n_node_junctions:wn + self.n_node_main] += (abs(self.y[wn+n_node_junctions:wn + self.n_node_main])-y_coord_junction) * np.tan(self.sweep_quarter_chord)
     
         # Set stiffness, mass. For, and elastic axis (TODO: Change elastic axis to aero?)
-        elem_stiffness[we:we + self.n_elem_main] = 0
+        self.elem_stiffness[we:we + self.n_elem_main] = 0
         elem_mass[we:we + self.n_elem_main] = 0
         node_counter = wn
         # if self.ifting_only and not self.structural_properties_fuselage:
@@ -254,7 +254,7 @@ class FLEXOPStructure:
             else:
                 i_material = index_position
             
-            elem_stiffness[we + ielem] = i_material
+            self.elem_stiffness[we + ielem] = i_material
             elem_mass[we + ielem] = i_material
             for inode in range(self.n_node_elem):
                 frame_of_reference_delta[we + ielem, inode, :] = [-1.0, 0.0, 0.0]  
@@ -281,14 +281,14 @@ class FLEXOPStructure:
         self.z[wn:wn + self.n_node_main - 1] = self.z[1:self.n_node_main]
 
 
-        elem_stiffness[we:we + self.n_elem_main] = 0
+        self.elem_stiffness[we:we + self.n_elem_main] = 0
         elem_mass[we:we + self.n_elem_main] = 0
 
 
         for ielem in range(self.n_elem_main):
             conn[we + ielem, :] = ((np.ones((3, ))*(we+ielem)*(self.n_node_elem - 1)) +
                                 [0, 2, 1])
-            elem_stiffness[we + ielem] =elem_stiffness[ielem]
+            self.elem_stiffness[we + ielem] =self.elem_stiffness[ielem]
             elem_mass[we + ielem] = i_material
         
         for inode in range(self.n_node_elem):
@@ -367,7 +367,7 @@ class FLEXOPStructure:
             boundary_conditions[wn] = - 1
 
 
-            elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
+            self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
             elem_mass[we:we + self.n_elem_fuselage] = n_stiffness - 2
             index_tail_start = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], offset_tail_nose-offset_wing_nose)
             we += self.n_elem_fuselage
@@ -396,7 +396,7 @@ class FLEXOPStructure:
             self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
             self.z[wn:wn + self.n_node_tail - 1] += self.y[wn:wn + self.n_node_tail - 1] * np.tan(self.v_tail_angle)
 
-            elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
+            self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
             elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
             for ielem in range(self.n_elem_tail):
                 conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
@@ -419,7 +419,7 @@ class FLEXOPStructure:
             self.z[wn:wn + self.n_node_tail - 1] += abs(self.y[wn:wn + self.n_node_tail - 1]) * np.tan(self.v_tail_angle)
 
 
-            elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
+            self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
             elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
             for ielem in range(self.n_elem_tail):
                 conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
@@ -440,7 +440,7 @@ class FLEXOPStructure:
             h5file.create_dataset('num_node', data=self.n_node)
             h5file.create_dataset('num_elem', data=self.n_elem)
             h5file.create_dataset('stiffness_db', data=stiffness)
-            h5file.create_dataset('elem_stiffness', data=elem_stiffness)
+            h5file.create_dataset('elem_stiffness', data=self.elem_stiffness)
             h5file.create_dataset('mass_db', data=mass)
             h5file.create_dataset('elem_mass', data=elem_mass)
             h5file.create_dataset('frame_of_reference_delta', data=frame_of_reference_delta)

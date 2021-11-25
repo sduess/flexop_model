@@ -118,6 +118,7 @@ class FLEXOPAero:
 
         junction_boundary_condition_aero = np.zeros((1, n_surfaces), dtype=int) - 1
 
+        list_spanwise_shear_center = self.read_spanwise_shear_center()
         ###############
         # Control Surfaces
         ###############
@@ -210,6 +211,7 @@ class FLEXOPAero:
                 twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
                 if i_local_node == 1:
                     jigtwist_elem[i_elem] = np.rad2deg(twist[i_elem, i_local_node])
+                elastic_axis[i_elem, i_local_node] = list_spanwise_shear_center[structure.elem_stiffness[i_elem]]
             global_node_counter += 2
             s_surface = False
 
@@ -502,3 +504,12 @@ class FLEXOPAero:
 
     def find_index_of_closest_entry(self, array_values, target_value):
         return (np.abs(array_values - target_value)).argmin()
+
+    def read_spanwise_shear_center(self):
+        df = pd.read_csv('../01_case_files/flexOp_data/shear_center.csv',
+                                sep=';')
+        if self.structure.material == "reference":
+            column = 1
+        else:
+            column = 2
+        return (0.5 + df.iloc[:,column]).to_list()
