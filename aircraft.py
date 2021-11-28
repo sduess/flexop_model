@@ -5,6 +5,7 @@ import numpy as np
 from structure import FLEXOPStructure
 from fuselage import FLEXOPFuselage
 from aero import FLEXOPAero
+from aero import area_ref
 import os
 import sharpy.sharpy_main
 
@@ -38,6 +39,10 @@ class FLEXOP:
         if self.aero is not None:
             self.aero.cs_deflection = elevator
             self.aero.rudder_deflection = rudder
+
+    @property
+    def reference_area(self):
+        return area_ref
 
     def generate(self):
 
