@@ -12,7 +12,7 @@ import sharpy.sharpy_main
 
 class FLEXOP:
 
-    def __init__(self, case_name, case_route, output_route):
+    def __init__(self, case_name, case_route, output_route, datafiles_directory='../01_case_files/flexOp_data/'):
         self.case_name = case_name
         self.case_route = case_route
         self.output_route = output_route
@@ -23,12 +23,16 @@ class FLEXOP:
 
         self.settings = None
 
+        self.source_directory = os.path.abspath(datafiles_directory)
+        print(f'Looking for source files in {self.source_directory}')
 
     def init_structure(self, **kwargs):
         self.structure = FLEXOPStructure(self.case_name, self.case_route, **kwargs)
+        self.structure.source_directory = self.source_directory
 
     def init_aero(self, m, **kwargs):
         self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, **kwargs)
+        self.aero.source_directory = self.source_directory
 
     def init_fuselage(self, m, **kwargs):
         self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, **kwargs)
@@ -56,7 +60,6 @@ class FLEXOP:
         if self.fuselage is not None:
             self.fuselage.generate()
 
-
     def create_settings(self, settings):
         file_name = self.case_route + '/' + self.case_name + '.sharpy'
         config = configobj.ConfigObj()
@@ -69,7 +72,7 @@ class FLEXOP:
     def clean(self):
         list_files = ['.fem.h5', '.aero.h5', '.nonlifting_body.h5', '.dyn.h5', '.mb.h5', '.sharpy', '.flightcon.txt']
         for file in list_files:
-            path_file= self.case_route + '/' + self.case_name + file
+            path_file = self.case_route + '/' + self.case_name + file
             if os.path.isfile(path_file):
                 os.remove(path_file)
 

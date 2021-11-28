@@ -115,6 +115,16 @@ class FLEXOPStructure:
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = sweep_quarter_chord
 
+        self._source_directory = '../01_case_files/flexOp_data/'
+
+    @property
+    def source_directory(self):
+        return self._source_directory
+
+    @source_directory.setter
+    def source_directory(self, value):
+        self._source_directory = value
+
     def set_thrust(self, value):
         self.thrust = value
 
@@ -505,7 +515,7 @@ class FLEXOPStructure:
         return (np.abs(array_values - target_value)).argmin()
 
     def read_lumped_masses(self):
-        file = '../01_case_files/flexOp_data/lumped_masses.csv'
+        file = self.source_directory + '/lumped_masses.csv'
         df = pd.read_csv(file, sep=';')
         print(df.head())
         return df

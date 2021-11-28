@@ -54,6 +54,7 @@ area_ref = 2.54
 
 y_coord_junction = 0.144
 
+
 class FLEXOPAero:
     def __init__(self, m, structure, case_name, case_route, **kwargs):
         """
@@ -61,7 +62,7 @@ class FLEXOPAero:
         Key-Word Arguments:
             - cs_deflection (float): Elevator control surface deflection
             - rudder_deflection (float): rudder deflection
-            - polars (np.array): 4-column array for AoA (rad), Cl, Cd, Cm of the airfoil polar
+            - polars (list(np.array)): 4-column array for AoA (rad), Cl, Cd, Cm of each airfoil polar
         """
         self.m = m
         self.structure = structure
@@ -80,11 +81,19 @@ class FLEXOPAero:
         self.sweep_LE_main = sweep_LE_main
         self.sweep_TE_main = sweep_TE_main
 
-
         self.wing_only = True
         self.lifting_only = True
 
         self.polars = kwargs.get('polars', None)
+        self._source_directory = '../01_case_files/flexOp_data/'
+
+    @property
+    def source_directory(self):
+        return self._source_directory
+
+    @source_directory.setter
+    def source_directory(self, value):
+        self._source_directory = value
 
     def generate(self):
 
@@ -417,7 +426,7 @@ class FLEXOPAero:
             airfoils_group = h5file.create_group('airfoils')
             # add one airfoil
             FLEXOP_airfoil = airfoils_group.create_dataset('0', data=np.column_stack(
-                self.load_airfoil_data_from_file("../01_case_files/flexOp_data/camber_line_airfoils.csv")))
+                self.load_airfoil_data_from_file(self.source_directory + "/camber_line_airfoils.csv")))
             naca_airfoil_tail = airfoils_group.create_dataset('1', data=np.column_stack(
                 self.generate_naca_camber(P=0, M=0)))
             naca_airfoil_fin = airfoils_group.create_dataset('2', data=np.column_stack(
@@ -451,13 +460,13 @@ class FLEXOPAero:
 
             if self.polars is not None:
                 polars_group = h5file.create_group('polars')
-                for i_airfoil in range(3): # there are three airfoils
-                    polars_group.create_dataset('{:g}'.format(i_airfoil), data=self.polars)
+                for i_airfoil in range(3):  # there are three airfoils
+                    polars_group.create_dataset('{:g}'.format(i_airfoil), data=self.polars[i_airfoil])
 
     def get_jigtwist_from_y_coord(self, y_coord):
         y_coord = abs(y_coord)
         # TODO: Find function for the interpolation (there must be one out there)
-        df_jig_twist = pd.read_csv('../01_case_files/flexOp_data/jig_twist.csv',
+        df_jig_twist = pd.read_csv(self.source_directory + '/jig_twist.csv',
                                 sep=';')
         idx_closest_value = self.find_index_of_closest_entry(df_jig_twist.iloc[:,0], y_coord)
         if self.structure.material == "reference":
@@ -506,7 +515,7 @@ class FLEXOPAero:
         return (np.abs(array_values - target_value)).argmin()
 
     def read_spanwise_shear_center(self):
-        df = pd.read_csv('../01_case_files/flexOp_data/shear_center.csv',
+        df = pd.read_csv(self.source_directory + '/shear_center.csv',
                                 sep=';')
         if self.structure.material == "reference":
             column = 1
