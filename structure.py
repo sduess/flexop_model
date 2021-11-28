@@ -2,6 +2,7 @@
 import h5py as h5
 import pandas as pd
 import numpy as np
+from scipy.io import loadmat, matlab
 
 # Define all main parameters in the aircraft 
 # MODEL GEOMETRY
@@ -453,23 +454,19 @@ class FLEXOPStructure:
             h5file.create_dataset('lumped_mass_inertia', data=lumped_mass_inertia)
             h5file.create_dataset('lumped_mass_position', data=lumped_mass_position)
 
-
     def load_stiffness_and_mass_matrix_from_matlab_file(self):
-        import matlab.engine
-        eng = matlab.engine.start_matlab()
         # Load data from file
         if self.material == "reference":
-            file = '../01_case_files/FlexOp_Data_Jurij/dynamics_reference.mat'
+            file = self.source_directory + '/dynamics_reference.mat'
         else:
-            file = '../01_case_files/FlexOp_Data_Jurij/dynamics_tailored.mat'
+            file = self.source_directory + '/dynamics_tailored.mat'
 
-        D = eng.load(file)
-        matrices_cross_stiffness = np.array(D['dynamics'][0]['str']['elm']['C'])
-        matrices_cross_mass = np.array(D['dynamics'][0]['str']['elm']['A'])
-        matrices_cross_moment_of_inertia = np.array(D['dynamics'][0]['str']['elm']['I'])
-
-        nodal_coordinates =np.array(D['dynamics'][0]['str']['xyz'])
-        N_nodes = int(np.array(D['dynamics'][0]['str']['Nnode']))
+        matlab_data = load_mat(file)
+        matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C']
+        matrices_cross_mass = matlab_data['dynamics']['str']['elm']['A']
+        matrices_cross_moment_of_inertia = matlab_data['dynamics']['str']['elm']['I']
+        nodal_coordinates = matlab_data['dynamics']['str']['xyz']
+        N_nodes = int(matlab_data['dynamics']['str']['Nnode'])
 
         # Transform data
         coords = np.zeros((N_nodes, 3))
@@ -512,3 +509,64 @@ class FLEXOPStructure:
         df = pd.read_csv(file, sep=';')
         print(df.head())
         return df
+
+def load_mat(filename):
+    """
+    This function should be called instead of direct scipy.io.loadmat
+    as it cures the problem of not properly recovering python dictionaries
+    from mat files. It calls the function check keys to cure all entries
+    which are still mat-objects
+
+    References:
+        This glorious tool was obtained from:
+        https://stackoverflow.com/questions/7008608/scipy-io-loadmat-nested-structures-i-e-dictionaries/29126361#29126361
+    """
+
+    def _check_vars(d):
+        """
+        Checks if entries in dictionary are mat-objects. If yes
+        todict is called to change them to nested dictionaries
+        """
+        for key in d:
+            if isinstance(d[key], matlab.mio5_params.mat_struct):
+                d[key] = _todict(d[key])
+            elif isinstance(d[key], np.ndarray):
+                d[key] = _toarray(d[key])
+        return d
+
+    def _todict(matobj):
+        """
+        A recursive function which constructs from matobjects nested dictionaries
+        """
+        d = {}
+        for strg in matobj._fieldnames:
+            elem = matobj.__dict__[strg]
+            if isinstance(elem, matlab.mio5_params.mat_struct):
+                d[strg] = _todict(elem)
+            elif isinstance(elem, np.ndarray):
+                d[strg] = _toarray(elem)
+            else:
+                d[strg] = elem
+        return d
+
+    def _toarray(ndarray):
+        """
+        A recursive function which constructs ndarray from cellarrays
+        (which are loaded as numpy ndarrays), recursing into the elements
+        if they contain matobjects.
+        """
+        if ndarray.dtype != 'float64':
+            elem_list = []
+            for sub_elem in ndarray:
+                if isinstance(sub_elem, matlab.mio5_params.mat_struct):
+                    elem_list.append(_todict(sub_elem))
+                elif isinstance(sub_elem, np.ndarray):
+                    elem_list.append(_toarray(sub_elem))
+                else:
+                    elem_list.append(sub_elem)
+            return np.array(elem_list)
+        else:
+            return ndarray
+
+    data = loadmat(filename, struct_as_record=False, squeeze_me=True)
+    return _check_vars(data)
