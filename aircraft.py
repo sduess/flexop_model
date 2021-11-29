@@ -36,6 +36,7 @@ class FLEXOP:
 
     def init_fuselage(self, m, **kwargs):
         self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, **kwargs)
+        self.fuselage.source_directory = self.source_directory
 
     def set_flight_controls(self, thrust=0., elevator=0., rudder=0.):
         self.structure.set_thrust(thrust)
