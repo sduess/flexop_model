@@ -521,5 +521,4 @@ class FLEXOPAero:
             column = 1
         else:
             column = 2
-        return (0.5 + df.iloc[:,column]).to_list()
         return (0.71 + df.iloc[:,column]).to_list()
