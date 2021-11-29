@@ -12,7 +12,7 @@ import sharpy.sharpy_main
 
 class FLEXOP:
 
-    def __init__(self, case_name, case_route, output_route, datafiles_directory='../01_case_files/flexOp_data/'):
+    def __init__(self, case_name, case_route, output_route, datafiles_directory='./aeroelastic_properties'):
         self.case_name = case_name
         self.case_route = case_route
         self.output_route = output_route

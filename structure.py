@@ -115,7 +115,7 @@ class FLEXOPStructure:
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = sweep_quarter_chord
 
-        self._source_directory = '../01_case_files/flexOp_data/'
+        self._source_directory = './aeroelastic_properties'
 
     @property
     def source_directory(self):
