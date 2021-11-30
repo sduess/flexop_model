@@ -67,7 +67,7 @@ y_coord_junction = 0.144
 
 class FLEXOPStructure:
 
-    def __init__(self, case_name, case_route, **kwargs):
+    def __init__(self, case_name, case_route, source_directory, **kwargs):
         self.material = material
         self.sigma = kwargs.get('sigma', 1)
         self.n_elem_multiplier = kwargs.get('n_elem_multiplier', 1.5)
@@ -114,6 +114,8 @@ class FLEXOPStructure:
         self.v_tail_angle = v_tail_angle
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = sweep_quarter_chord
+
+        self.source_directory = source_directory
 
     def set_thrust(self, value):
         self.thrust = value
@@ -505,7 +507,7 @@ class FLEXOPStructure:
         return (np.abs(array_values - target_value)).argmin()
 
     def read_lumped_masses(self):
-        file = '../01_case_files/flexOp_data/lumped_masses.csv'
+        file = self.source_directory + '/lumped_masses.csv'
         df = pd.read_csv(file, sep=';')
         print(df.head())
         return df
