@@ -301,10 +301,7 @@ class FLEXOPStructure:
 
         conn[we, 0] = 0
         boundary_conditions[wn-1] = -1
-        if self.wing_only: #TODO Check why?
-            boundary_conditions[-1] = -1
-        else:
-            boundary_conditions[wn + self.n_node_main-1] = -1
+
         we += self.n_elem_main
         wn += self.n_node_main - 1
 
