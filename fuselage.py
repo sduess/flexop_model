@@ -95,7 +95,7 @@ class FLEXOPFuselage:
             radius_input.attrs['units'] = 'm'
 
     def find_index_of_closest_entry(self, array_values, target_value):
-        return (np.abs(array_values - target_value)).argmin()
+        return np.argmin(np.abs(array_values - target_value))
 
     def generate_fuselage_geometry(self, x_coord_fuselage):
         df_fuselage = pd.read_csv(self.source_directory + '/fuselage_geometry.csv', sep=";")

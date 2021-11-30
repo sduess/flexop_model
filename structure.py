@@ -507,7 +507,7 @@ class FLEXOPStructure:
                 j_bar, 0.5*j_bar, 0.5*j_bar])
 
     def find_index_of_closest_entry(self, array_values, target_value):
-        return (np.abs(array_values - target_value)).argmin()
+        return np.argmin(np.abs(array_values - target_value))
 
     def read_lumped_masses(self):
         file = self.source_directory + '/lumped_masses.csv'

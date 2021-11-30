@@ -504,7 +504,7 @@ class FLEXOPAero:
         return np.array(camber_line.iloc[:,0]), np.array(camber_line.iloc[:,1])
 
     def find_index_of_closest_entry(self, array_values, target_value):
-        return (np.abs(array_values - target_value)).argmin()
+        return np.argmin(np.abs(array_values - target_value))
 
     def read_spanwise_shear_center(self):
         df = pd.read_csv(self.source_directory + '/shear_center.csv',
