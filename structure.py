@@ -142,6 +142,8 @@ class FLEXOPStructure:
         # lumped masses
         df_lumped_masses = self.read_lumped_masses()
         n_lumped_mass = df_lumped_masses.shape[0]*2
+        if not self.wing_only:
+            n_lumped_mass += 1 #for payload
         lumped_mass_nodes = np.zeros((n_lumped_mass, ), dtype=int)
         lumped_mass = np.zeros((n_lumped_mass, ))
         # lumped_mass[0] = 0 # mass_take_off
@@ -308,16 +310,20 @@ class FLEXOPStructure:
 
 
         # Set lumped masses wing
-        for imass in range(int(n_lumped_mass/2)):
+        if not self.wing_only:
+            n_lumped_mass_wing = int((n_lumped_mass - 1)/2)
+        else:
+            n_lumped_mass_wing = int(n_lumped_mass/2)
+        for imass in range(n_lumped_mass_wing):
             lumped_mass[imass] =  df_lumped_masses.iloc[imass, 1]
             lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
-            lumped_mass_position[imass, 0] -= (0.5-0.140615385) *chord_root # adjust x=0 at LE
+            lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_root # adjust x=0 at LE
             lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
             lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 4]
             lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], lumped_mass_position[imass,1])
         
             # Copy to symmetric wing
-            idx_symmetric = int(n_lumped_mass/2)+imass
+            idx_symmetric = n_lumped_mass_wing + imass
             lumped_mass[idx_symmetric] =  lumped_mass[imass]
             lumped_mass_position[idx_symmetric, 0] = lumped_mass_position[imass, 0]
             lumped_mass_position[idx_symmetric, 1] = -lumped_mass_position[imass, 1]
@@ -509,7 +515,6 @@ class FLEXOPStructure:
     def read_lumped_masses(self):
         file = self.source_directory + '/lumped_masses.csv'
         df = pd.read_csv(file, sep=';')
-        print(df.head())
         return df
 
 def load_mat(filename):
