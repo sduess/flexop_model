@@ -71,6 +71,7 @@ class FLEXOPStructure:
         self.material = material
         self.sigma = kwargs.get('sigma', 1)
         self.n_elem_multiplier = kwargs.get('n_elem_multiplier', 1.5)
+        self.n_elem_multiplier_fuselage = kwargs.get('n_elem_multiplier_fuselage', 2)
 
         self.route = case_route
         self.case_name = case_name
@@ -105,8 +106,8 @@ class FLEXOPStructure:
         self.span_tail = span_tail
         self.y_coord_junction = y_coord_junction # Radius fuselage at wing
 
-        self.wing_only = True
-        self.lifting_only = True
+        self.wing_only = kwargs.get('wing_only', True)
+        self.lifting_only = kwargs.get('lifting_only', True)
 
         self.n_stiffness_wing = n_stiffness_wing
         self.n_ailerons_per_wing = numb_ailerons
@@ -134,7 +135,7 @@ class FLEXOPStructure:
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
         self.n_elem_main = int(self.n_elem_junction_main + self.n_elem_root_main + self.n_ailerons_per_wing * self.n_elem_per_aileron + self.n_elem_tip_main)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
-        self.n_elem_fuselage = 21 #int(8*2*self.n_elem_multiplier)
+        self.n_elem_fuselage = int(11*self.n_elem_multiplier_fuselage)
  
         if self.wing_only:
             self.lifting_only = True
@@ -507,7 +508,7 @@ class FLEXOPStructure:
                 j_bar, 0.5*j_bar, 0.5*j_bar])
 
     def find_index_of_closest_entry(self, array_values, target_value):
-        return (np.abs(array_values - target_value)).argmin()
+        return np.argmin(np.abs(array_values - target_value))
 
     def read_lumped_masses(self):
         file = self.source_directory + '/lumped_masses.csv'

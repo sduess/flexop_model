@@ -81,8 +81,8 @@ class FLEXOPAero:
         self.sweep_LE_main = sweep_LE_main
         self.sweep_TE_main = sweep_TE_main
 
-        self.wing_only = True
-        self.lifting_only = True
+        self.wing_only = self.structure.wing_only
+        self.lifting_only = self.structure.lifting_only
 
         self.polars = kwargs.get('polars', None)
         self.source_directory = source_directory
@@ -418,7 +418,7 @@ class FLEXOPAero:
             airfoils_group = h5file.create_group('airfoils')
             # add one airfoil
             FLEXOP_airfoil = airfoils_group.create_dataset('0', data=np.column_stack(
-                self.load_airfoil_data_from_file(self.source_directory + "/camber_line_airfoils.csv")))
+                self.load_airfoil_data_from_file()))
             naca_airfoil_tail = airfoils_group.create_dataset('1', data=np.column_stack(
                 self.generate_naca_camber(P=0, M=0)))
             naca_airfoil_fin = airfoils_group.create_dataset('2', data=np.column_stack(
@@ -498,19 +498,20 @@ class FLEXOPAero:
         y_vec = np.array([naca(x, mm, p) for x in x_vec])
         return x_vec, y_vec
 
-    def load_airfoil_data_from_file(self, file):
-        #file = "../01_case_files/FlexOp_Data_Jurij/camber_line_airfoils.csv"
+    def load_airfoil_data_from_file(self):
+        file = self.source_directory + "/camber_line_airfoils.csv"
         camber_line = pd.read_csv(file, sep = ";")
         return np.array(camber_line.iloc[:,0]), np.array(camber_line.iloc[:,1])
 
     def find_index_of_closest_entry(self, array_values, target_value):
-        return (np.abs(array_values - target_value)).argmin()
+        return np.argmin(np.abs(array_values - target_value))
 
     def read_spanwise_shear_center(self):
+        reference_shear_center = 0.71 # given by Jurij
         df = pd.read_csv(self.source_directory + '/shear_center.csv',
                                 sep=';')
         if self.structure.material == "reference":
             column = 1
         else:
             column = 2
-        return (0.71 + df.iloc[:,column]).to_list()
+        return (reference_shear_center + df.iloc[:,column]).to_list()
