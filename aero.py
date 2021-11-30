@@ -81,8 +81,8 @@ class FLEXOPAero:
         self.sweep_LE_main = sweep_LE_main
         self.sweep_TE_main = sweep_TE_main
 
-        self.wing_only = True
-        self.lifting_only = True
+        self.wing_only = self.structure.wing_only
+        self.lifting_only = self.structure.lifting_only
 
         self.polars = kwargs.get('polars', None)
         self.source_directory = source_directory

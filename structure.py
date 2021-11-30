@@ -106,8 +106,8 @@ class FLEXOPStructure:
         self.span_tail = span_tail
         self.y_coord_junction = y_coord_junction # Radius fuselage at wing
 
-        self.wing_only = True
-        self.lifting_only = True
+        self.wing_only = kwargs.get('wing_only', True)
+        self.lifting_only = kwargs.get('lifting_only', True)
 
         self.n_stiffness_wing = n_stiffness_wing
         self.n_ailerons_per_wing = numb_ailerons
