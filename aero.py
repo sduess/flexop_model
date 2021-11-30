@@ -418,7 +418,7 @@ class FLEXOPAero:
             airfoils_group = h5file.create_group('airfoils')
             # add one airfoil
             FLEXOP_airfoil = airfoils_group.create_dataset('0', data=np.column_stack(
-                self.load_airfoil_data_from_file(self.source_directory + "/camber_line_airfoils.csv")))
+                self.load_airfoil_data_from_file()))
             naca_airfoil_tail = airfoils_group.create_dataset('1', data=np.column_stack(
                 self.generate_naca_camber(P=0, M=0)))
             naca_airfoil_fin = airfoils_group.create_dataset('2', data=np.column_stack(
@@ -498,8 +498,8 @@ class FLEXOPAero:
         y_vec = np.array([naca(x, mm, p) for x in x_vec])
         return x_vec, y_vec
 
-    def load_airfoil_data_from_file(self, file):
-        #file = "../01_case_files/FlexOp_Data_Jurij/camber_line_airfoils.csv"
+    def load_airfoil_data_from_file(self):
+        file = self.source_directory + "/camber_line_airfoils.csv"
         camber_line = pd.read_csv(file, sep = ";")
         return np.array(camber_line.iloc[:,0]), np.array(camber_line.iloc[:,1])
 
