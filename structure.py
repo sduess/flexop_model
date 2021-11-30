@@ -468,7 +468,7 @@ class FLEXOPStructure:
             file = self.source_directory + '/dynamics_tailored.mat'
 
         matlab_data = load_mat(file)
-        matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C']
+        matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C'] * self.sigma
         matrices_cross_mass = matlab_data['dynamics']['str']['elm']['A']
         matrices_cross_moment_of_inertia = matlab_data['dynamics']['str']['elm']['I']
         nodal_coordinates = matlab_data['dynamics']['str']['xyz']
