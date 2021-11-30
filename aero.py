@@ -507,10 +507,11 @@ class FLEXOPAero:
         return np.argmin(np.abs(array_values - target_value))
 
     def read_spanwise_shear_center(self):
+        reference_shear_center = 0.71 # given by Jurij
         df = pd.read_csv(self.source_directory + '/shear_center.csv',
                                 sep=';')
         if self.structure.material == "reference":
             column = 1
         else:
             column = 2
-        return (0.71 + df.iloc[:,column]).to_list()
+        return (reference_shear_center + df.iloc[:,column]).to_list()
