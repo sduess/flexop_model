@@ -12,7 +12,7 @@ import sharpy.sharpy_main
 
 class FLEXOP:
 
-    def __init__(self, case_name, case_route, output_route, datafiles_directory='./aeroelastic_properties'):
+    def __init__(self, case_name, case_route, output_route):
         self.case_name = case_name
         self.case_route = case_route
         self.output_route = output_route
@@ -23,20 +23,18 @@ class FLEXOP:
 
         self.settings = None
 
-        self.source_directory = os.path.abspath(datafiles_directory)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.source_directory = os.path.join(dir_path, 'aeroelastic_properties')
         print(f'Looking for source files in {self.source_directory}')
 
     def init_structure(self, **kwargs):
-        self.structure = FLEXOPStructure(self.case_name, self.case_route, **kwargs)
-        self.structure.source_directory = self.source_directory
+        self.structure = FLEXOPStructure(self.case_name, self.case_route, self.source_directory, **kwargs)
 
     def init_aero(self, m, **kwargs):
-        self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, **kwargs)
-        self.aero.source_directory = self.source_directory
+        self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, self.source_directory,**kwargs)
 
     def init_fuselage(self, m, **kwargs):
-        self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, **kwargs)
-        self.fuselage.source_directory = self.source_directory
+        self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, self.source_directory, **kwargs)
 
     def set_flight_controls(self, thrust=0., elevator=0., rudder=0.):
         self.structure.set_thrust(thrust)

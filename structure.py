@@ -67,7 +67,7 @@ y_coord_junction = 0.144
 
 class FLEXOPStructure:
 
-    def __init__(self, case_name, case_route, **kwargs):
+    def __init__(self, case_name, case_route, source_directory, **kwargs):
         self.material = material
         self.sigma = kwargs.get('sigma', 1)
         self.n_elem_multiplier = kwargs.get('n_elem_multiplier', 1.5)
@@ -115,15 +115,7 @@ class FLEXOPStructure:
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = sweep_quarter_chord
 
-        self._source_directory = './aeroelastic_properties'
-
-    @property
-    def source_directory(self):
-        return self._source_directory
-
-    @source_directory.setter
-    def source_directory(self, value):
-        self._source_directory = value
+        self.source_directory = source_directory
 
     def set_thrust(self, value):
         self.thrust = value

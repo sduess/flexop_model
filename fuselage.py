@@ -6,7 +6,7 @@ import pandas as pd
 n_nonlifting_bodies = 1
 
 class FLEXOPFuselage:
-    def __init__(self, m, structure, case_name, case_route, **kwargs):
+    def __init__(self, m, structure, case_name, case_route, source_directory, **kwargs):
         """
         
         Key-Word Arguments:
@@ -17,15 +17,7 @@ class FLEXOPFuselage:
         self.route = case_route
         self.case_name = case_name
         self.n_nonlifting_bodies = n_nonlifting_bodies
-        self._source_directory = './aeroelastic_properties/'
-
-    @property
-    def source_directory(self):
-        return self._source_directory
-
-    @source_directory.setter
-    def source_directory(self, value):
-        self._source_directory = value
+        self.source_directory = source_directory
 
     def generate(self): 
 

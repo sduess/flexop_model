@@ -56,7 +56,7 @@ y_coord_junction = 0.144
 
 
 class FLEXOPAero:
-    def __init__(self, m, structure, case_name, case_route, **kwargs):
+    def __init__(self, m, structure, case_name, case_route, source_directory, **kwargs):
         """
         
         Key-Word Arguments:
@@ -85,15 +85,7 @@ class FLEXOPAero:
         self.lifting_only = True
 
         self.polars = kwargs.get('polars', None)
-        self._source_directory = './aeroelastic_properties/'
-
-    @property
-    def source_directory(self):
-        return self._source_directory
-
-    @source_directory.setter
-    def source_directory(self, value):
-        self._source_directory = value
+        self.source_directory = source_directory
 
     def generate(self):
 
