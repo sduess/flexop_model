@@ -6,7 +6,7 @@ import pandas as pd
 n_nonlifting_bodies = 1
 
 class FLEXOPFuselage:
-    def __init__(self, m, structure, case_name, case_route, **kwargs):
+    def __init__(self, m, structure, case_name, case_route, source_directory, **kwargs):
         """
         
         Key-Word Arguments:
@@ -17,6 +17,7 @@ class FLEXOPFuselage:
         self.route = case_route
         self.case_name = case_name
         self.n_nonlifting_bodies = n_nonlifting_bodies
+        self.source_directory = source_directory
 
     def generate(self): 
 
@@ -97,7 +98,7 @@ class FLEXOPFuselage:
         return (np.abs(array_values - target_value)).argmin()
 
     def generate_fuselage_geometry(self, x_coord_fuselage):
-        df_fuselage = pd.read_csv('../01_case_files/flexOp_data/fuselage_geometry.csv', sep=";")
+        df_fuselage = pd.read_csv(self.source_directory + '/fuselage_geometry.csv', sep=";")
         y_coord_fuselage = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'y', True)
         z_coord_fuselage_upper = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'z', True)
         z_coord_fuselage_lower = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'z', False)

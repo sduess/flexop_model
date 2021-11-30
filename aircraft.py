@@ -23,15 +23,18 @@ class FLEXOP:
 
         self.settings = None
 
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.source_directory = os.path.join(dir_path, 'aeroelastic_properties')
+        print(f'Looking for source files in {self.source_directory}')
 
     def init_structure(self, **kwargs):
-        self.structure = FLEXOPStructure(self.case_name, self.case_route, **kwargs)
+        self.structure = FLEXOPStructure(self.case_name, self.case_route, self.source_directory, **kwargs)
 
     def init_aero(self, m, **kwargs):
-        self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, **kwargs)
+        self.aero = FLEXOPAero(m, self.structure, self.case_name, self.case_route, self.source_directory,**kwargs)
 
     def init_fuselage(self, m, **kwargs):
-        self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, **kwargs)
+        self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, self.source_directory, **kwargs)
 
     def set_flight_controls(self, thrust=0., elevator=0., rudder=0.):
         self.structure.set_thrust(thrust)
@@ -56,7 +59,6 @@ class FLEXOP:
         if self.fuselage is not None:
             self.fuselage.generate()
 
-
     def create_settings(self, settings):
         file_name = self.case_route + '/' + self.case_name + '.sharpy'
         config = configobj.ConfigObj()
@@ -69,7 +71,7 @@ class FLEXOP:
     def clean(self):
         list_files = ['.fem.h5', '.aero.h5', '.nonlifting_body.h5', '.dyn.h5', '.mb.h5', '.sharpy', '.flightcon.txt']
         for file in list_files:
-            path_file= self.case_route + '/' + self.case_name + file
+            path_file = self.case_route + '/' + self.case_name + file
             if os.path.isfile(path_file):
                 os.remove(path_file)
 
