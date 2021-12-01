@@ -301,11 +301,12 @@ class FLEXOPStructure:
                 frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0] 
 
         conn[we, 0] = 0
-        boundary_conditions[wn-1] = -1
+        boundary_conditions[wn-1] = -1 # tip right wing
 
         we += self.n_elem_main
         wn += self.n_node_main - 1
 
+        boundary_conditions[wn-1] = -1 # tip left wing
 
         # Set lumped masses wing
         if not self.wing_only:
@@ -381,7 +382,6 @@ class FLEXOPStructure:
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1
             boundary_conditions[wn - 1] = -1
-            boundary_conditions[index_tail_start] = 1
 
             ###############
             # right tail
