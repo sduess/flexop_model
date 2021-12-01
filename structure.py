@@ -386,16 +386,17 @@ class FLEXOPStructure:
             self.x[wn:wn + self.n_node_tail - 1] = self.x[index_tail_start]
             wn_right_tail_start = wn
             n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
-            self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[:-1]
+            self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[1:]
             # Approach 1: Direct transition from one aileron to another aileron
             n_nodes_per_cs = (self.n_elem_per_elevator)*2+1
 
             for i_control_surface in range(self.n_elev_per_tail_surf):
-                wn_start = wn +  n_node_junctions - 1 + i_control_surface*(n_nodes_per_cs-1)
+                wn_start = wn +  n_node_junctions - 1 + i_control_surface*(n_nodes_per_cs-1) -1
                 wn_end= wn_start + n_nodes_per_cs
                 self.y[wn_start:wn_end] = np.linspace(y_coord_elevators[i_control_surface], 
                                                     y_coord_elevators[i_control_surface+1], 
-                                                    n_nodes_per_cs)
+                                                    n_nodes_per_cs)[:]                
+                                    
             self.x[wn:wn + self.n_node_tail - 1]  += abs(self.y[wn:wn + self.n_node_tail - 1])* np.tan(self.tail_sweep_quarter_chord)
             self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
             self.z[wn:wn + self.n_node_tail - 1] += self.y[wn:wn + self.n_node_tail - 1] * np.tan(self.v_tail_angle)
@@ -409,20 +410,19 @@ class FLEXOPStructure:
                     frame_of_reference_delta[we + ielem, inode, :] = [-1.0, 0.0, 0.0]     
             conn[we, 0] =  index_tail_start 
             boundary_conditions[wn + self.n_node_tail - 2] = -1
+
             we += self.n_elem_tail
             wn += self.n_node_tail - 1
             ###############
             # left tail
             ###############
             beam_number[we:we + self.n_elem_tail] = 4
-            self.x[wn:wn + self.n_node_tail - 1] = self.x[index_tail_start]
-            self.y[wn:wn + self.n_node_tail - 1] = -self.y[wn_right_tail_start:wn_right_tail_start + self.n_node_tail - 1]
 
-            self.x[wn:wn + self.n_node_tail - 1]  += abs(self.y[wn:wn + self.n_node_tail - 1])* np.tan(self.tail_sweep_quarter_chord)
-            self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
-            self.z[wn:wn + self.n_node_tail - 1] += abs(self.y[wn:wn + self.n_node_tail - 1]) * np.tan(self.v_tail_angle)
+            self.y[wn:wn + self.n_node_tail - 1] = -self.y[wn-self.n_node_tail+1:wn]
+            self.x[wn:wn + self.n_node_main - 1] = self.x[wn-self.n_node_tail+1:wn]
+            self.z[wn:wn + self.n_node_main - 1] = self.z[wn-self.n_node_tail+1:wn]
 
-
+     
             self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
             elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
             for ielem in range(self.n_elem_tail):
@@ -431,7 +431,6 @@ class FLEXOPStructure:
                 for inode in range(self.n_node_elem):
                     frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0]
 
-                node_counter += 2
             conn[we, 0] =  index_tail_start 
             boundary_conditions[wn + self.n_node_tail - 2] = -1
             we += self.n_elem_tail
