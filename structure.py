@@ -245,10 +245,6 @@ class FLEXOPStructure:
         self.elem_stiffness[we:we + self.n_elem_main] = 0
         elem_mass[we:we + self.n_elem_main] = 0
         node_counter = wn
-        # if self.ifting_only and not self.structural_properties_fuselage:
-        #     aero_node[wn:wn + n_node_main] = True
-        # else:
-        #     aero_node[wn:wn + n_node_main] = abs(y[wn:wn + n_node_main]) >= y_coord_junction   
         for ielem in range(self.n_elem_main):
             conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
                                 [0, 2, 1])          

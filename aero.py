@@ -239,8 +239,7 @@ class FLEXOPAero:
         # left wing
         ###############
         i_surf = 1
-        airfoil_distribution[we:we + self.n_elem_main, :] = 0
-        # airfoil_distribution[wn:wn + self.n_node_main - 1] = 0
+        airfoil_distribution[we:we + self.n_elem_main] = 0
         surface_distribution[we:we + self.n_elem_main] = i_surf
         surface_m[i_surf] = m
 
