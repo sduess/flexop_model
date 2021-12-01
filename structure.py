@@ -135,7 +135,7 @@ class FLEXOPStructure:
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
         self.n_elem_main = int(self.n_elem_junction_main + self.n_elem_root_main + self.n_ailerons_per_wing * self.n_elem_per_aileron + self.n_elem_tip_main)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
-        self.n_elem_fuselage = int(11*self.n_elem_multiplier_fuselage)
+        self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
  
         if self.wing_only:
             self.lifting_only = True
