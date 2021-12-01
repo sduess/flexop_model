@@ -468,6 +468,7 @@ class FLEXOPStructure:
         matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C'] * self.sigma
         matrices_cross_mass = matlab_data['dynamics']['str']['elm']['A']
         matrices_cross_moment_of_inertia = matlab_data['dynamics']['str']['elm']['I']
+        matrices_cross_first_moment = matlab_data['dynamics']['str']['elm']['Q']
         nodal_coordinates = matlab_data['dynamics']['str']['xyz']
         N_nodes = int(matlab_data['dynamics']['str']['Nnode'])
 
@@ -493,6 +494,10 @@ class FLEXOPStructure:
             for i in range(3):
                 mass_matrix[i,i] = mass
             mass_matrix[3:,3:] = matrices_cross_moment_of_inertia[inertia_counter:inertia_counter+3,:3]
+            mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
+                                                              matrices_cross_first_moment[row_counter,1], 
+                                                              matrices_cross_first_moment[row_counter,0])
+            mass_matrix[:3,3:] = -mass_matrix[3:,:3]
             list_mass_matrix.append(mass_matrix)
             # TODO More elegant solution
             counter += 6
@@ -511,6 +516,16 @@ class FLEXOPStructure:
         file = self.source_directory + '/lumped_masses.csv'
         df = pd.read_csv(file, sep=';')
         return df
+
+    def get_first_moment_matrix(self, x,y,z):
+        matrix = np.zeros((3,3))
+        matrix[0,1] = -z
+        matrix[1,0] = +z
+        matrix[0,2] = +y
+        matrix[2,0] = -y
+        matrix[1,2] = -x
+        matrix[2,1] = +x
+        return matrix
 
 def load_mat(filename):
     """
