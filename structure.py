@@ -297,8 +297,8 @@ class FLEXOPStructure:
             self.elem_stiffness[we + ielem] =self.elem_stiffness[ielem]
             elem_mass[we + ielem] = i_material
         
-        for inode in range(self.n_node_elem):
-            frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0] 
+            for inode in range(self.n_node_elem):
+                frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0] 
 
         conn[we, 0] = 0
         boundary_conditions[wn-1] = -1
@@ -346,6 +346,9 @@ class FLEXOPStructure:
             for ielem in range(self.n_elem_fuselage):
                 conn[we + ielem, :] = ((np.ones((3,))*(we + ielem)*(self.n_node_elem - 1)) +
                                     2 + [0, 2, 1]) - 1
+
+                for inode in range(self.n_node_elem):
+                    frame_of_reference_delta[we + ielem, inode, :] = [0.0, 1.0, 0.0]
                 if adjust:
                     conn[we + ielem, :] -= 1
                 else:
@@ -363,8 +366,6 @@ class FLEXOPStructure:
                                 conn[we + ielem, idx_node] = 0
                                 if idx_node == 1:
                                     node_fuselage_conn = True
-                for inode in range(self.n_node_elem):
-                    frame_of_reference_delta[we + ielem, inode, :] = [0.0, 1.0, 0.0]
             # setup lumped mass position
             wn_lumped_mass = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], x_lumped_mass)
             lumped_mass_nodes[0] = wn_lumped_mass
