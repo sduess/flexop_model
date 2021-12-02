@@ -384,11 +384,11 @@ class FLEXOPStructure:
                                 if idx_node == 1:
                                     node_fuselage_conn = True
             # setup lumped mass position
-            wn_lumped_mass = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], x_lumped_mass)
-            lumped_mass_nodes[0] = wn_lumped_mass
-            lumped_mass_position[0, 0] = self.x[wn_lumped_mass]
-            lumped_mass_position[0, 1] = self.y[wn_lumped_mass]
-            lumped_mass_position[0, 2] = self.z[wn_lumped_mass]
+            # wn_lumped_mass = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], x_lumped_mass)
+            # lumped_mass_nodes[0] = wn_lumped_mass
+            # lumped_mass_position[0, 0] = self.x[wn_lumped_mass]
+            # lumped_mass_position[0, 1] = self.y[wn_lumped_mass]
+            # lumped_mass_position[0, 2] = self.z[wn_lumped_mass]
             boundary_conditions[wn] = - 1
 
 
