@@ -8,6 +8,9 @@ from aero import FLEXOPAero
 from aero import area_ref
 import os
 import sharpy.sharpy_main
+import subprocess
+
+FLEXOP_DIRECTORY = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 class FLEXOP:
@@ -77,3 +80,38 @@ class FLEXOP:
 
     def run(self):
         sharpy.sharpy_main.main(['', self.case_route + '/' + self.case_name + '.sharpy'])
+
+
+# version tracker and output
+def get_git_revision_hash(di=FLEXOP_DIRECTORY):
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=di).strip().decode('utf-8')
+
+
+def get_git_revision_short_hash(di=FLEXOP_DIRECTORY):
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=di).strip().decode('utf-8')
+
+
+def get_git_revision_branch(di=FLEXOP_DIRECTORY):
+    return subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=di).strip().decode('utf-8')
+
+
+def get_git_tag(di=FLEXOP_DIRECTORY):
+    return subprocess.check_output(['git', 'describe'], cwd=di).strip().decode('utf-8')
+
+
+def print_git_status():
+    try:
+        version_msg = get_git_tag()
+    except subprocess.CalledProcessError:
+        version_msg = 'unreleased'
+
+    return ('FLEXOP Model Git info:'
+            '\tThe branch being run is ' + get_git_revision_branch() +
+            '\n' +
+            '\tVersion: ' + version_msg + '\n' +
+            '\tCommit hash: ' + get_git_revision_short_hash() + '\n'
+            '\tFull hash' + get_git_revision_hash())
+
+if __name__ == '__main__':
+    print(FLEXOP_DIRECTORY)
+    print(print_git_status())
