@@ -110,7 +110,7 @@ def print_git_status():
             '\n' +
             '\tVersion: ' + version_msg + '\n' +
             '\tCommit hash: ' + get_git_revision_short_hash() + '\n'
-            '\tFull hash' + get_git_revision_hash())
+            '\tFull hash: ' + get_git_revision_hash())
 
 if __name__ == '__main__':
     print(FLEXOP_DIRECTORY)
