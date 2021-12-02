@@ -366,23 +366,44 @@ class FLEXOPStructure:
 
                 for inode in range(self.n_node_elem):
                     frame_of_reference_delta[we + ielem, inode, :] = [0.0, 1.0, 0.0]
-                if adjust:
-                    conn[we + ielem, :] -= 1
-                else:
-                    if node_fuselage_conn:
-                        conn[we + ielem, 0] = 0
-                    elif (conn[we + ielem, :] ==  wn+idx_junction).any():
-                        adjust_elem = False
-                        for idx_node in [0, 2, 1]:               
-                            if adjust_elem:
-                                conn[we + ielem, idx_node] -= 1  
+            for ielem in range(self.n_elem_fuselage):
+                if (conn[we + ielem, :] ==  wn+idx_junction).any():
+                    if (conn[we + ielem, 0] == wn+idx_junction):
+                        # junction at nose
+                        conn[:,:] -= 1
+                        conn[we,0 ]= 0
+                        break
+                    elif (conn[we + ielem, 2] == wn+idx_junction):
+                        # junction at center of an element
+                        conn[we + ielem, 2] = 0
+                        conn[we + ielem, 1] -= 1 
+                        conn[we + ielem + 1:we + self.n_elem_fuselage, :] -= 1 
+                    elif  (conn[we + ielem, 1] == wn+idx_junction):
+                        # junction at last node of an element and first of the second one
+                        conn[we + ielem, 1] = 0
+                        conn[we + ielem + 1:we + self.n_elem_fuselage, :] -= 1 
+                        conn[we + ielem + 1, 0] = 0
+                    break
 
-                            elif conn[we + ielem, idx_node] ==  wn+idx_junction:
-                                adjust = True
-                                adjust_elem = True
-                                conn[we + ielem, idx_node] = 0
-                                if idx_node == 1:
-                                    node_fuselage_conn = True
+
+
+                # if adjust:
+                #     conn[we + ielem, :] -= 1
+                # else:
+                #     if node_fuselage_conn:
+                #         conn[we + ielem, 0] = 0
+                #     elif (conn[we + ielem, :] ==  wn+idx_junction).any():
+                #         adjust_elem = False
+                #         for idx_node in [0, 2, 1]:               
+                #             if adjust_elem:
+                #                 conn[we + ielem, idx_node] -= 1  
+
+                #             elif conn[we + ielem, idx_node] ==  wn+idx_junction:
+                #                 adjust = True
+                #                 adjust_elem = True
+                #                 conn[we + ielem, idx_node] = 0
+                #                 if idx_node == 1:
+                #                     node_fuselage_conn = True
             # setup lumped mass position
             # wn_lumped_mass = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], x_lumped_mass)
             # lumped_mass_nodes[0] = wn_lumped_mass
