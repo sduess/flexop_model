@@ -123,6 +123,7 @@ class FLEXOPStructure:
 
     def generate(self):
         # Set Elements
+        tail = False
         self.n_elem_junction_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_junction_main < 1:
             self.n_elem_junction_main = 1
@@ -131,9 +132,10 @@ class FLEXOPStructure:
         if self.n_elem_tip_main < 1:
             self.n_elem_tip_main = 1
         self.n_elem_per_aileron = int(4*self.n_elem_multiplier)
+        self.n_elem_main = int(self.n_elem_junction_main + self.n_elem_root_main + self.n_ailerons_per_wing * self.n_elem_per_aileron + self.n_elem_tip_main)
+
         self.n_elem_per_elevator =  int(3*self.n_elem_multiplier)
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
-        self.n_elem_main = int(self.n_elem_junction_main + self.n_elem_root_main + self.n_ailerons_per_wing * self.n_elem_per_aileron + self.n_elem_tip_main)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
         self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
  
@@ -155,7 +157,8 @@ class FLEXOPStructure:
         self.n_elem = self.n_elem_main + self.n_elem_main
         if not self.wing_only:
             self.n_elem += self.n_elem_fuselage
-            self.n_elem += self.n_elem_tail + self.n_elem_tail
+            if tail:
+                self.n_elem += self.n_elem_tail + self.n_elem_tail
 
 
         # number of nodes per part
@@ -167,14 +170,17 @@ class FLEXOPStructure:
         self.n_node = self.n_node_main + self.n_node_main - 1
         if not self.wing_only:
             self.n_node += self.n_node_fuselage - 1
-            self.n_node += self.n_node_tail - 1
-            self.n_node += self.n_node_tail - 1
+            if tail:
+                self.n_node += self.n_node_tail - 1
+                self.n_node += self.n_node_tail - 1
 
 
         # Aeroelastic properties
         n_stiffness = self.n_stiffness_wing
         if not self.wing_only:
             n_stiffness += 2
+            if not tail:
+                n_stiffness -= 1
 
         n_mass = n_stiffness
         # TODO: Adjust for paper values
@@ -207,11 +213,24 @@ class FLEXOPStructure:
             stiffness[i, ...] = list_stiffness_matrix[i] #list_spanwise_stiffness_properties[i]
             mass[i, ...] =  list_mass_matrix[i] #list_spanwise_mass_properties[i]
         if not self.wing_only:
-            stiffness[-2, ...] = list_stiffness_matrix[0]*sigma_fuselage
-            stiffness[-1, ...] = list_stiffness_matrix[0]*sigma_tail
 
-            mass[-2, ...] = self.generate_mass_matrix(m_bar_fuselage, j_bar_fuselage)
-            mass[-1, ...] = self.generate_mass_matrix(m_bar_tail, j_bar_tail)
+            ea = 1e7
+            ga = 1e5
+            gj = 1e4
+            eiy = 2e4
+            eiz = 4e6
+            if tail:
+                stiffness[-2, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_fuselage
+                stiffness[-1, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_tail
+
+                mass[-2, ...] = self.generate_mass_matrix(m_bar_fuselage, j_bar_fuselage)
+                mass[-1, ...] = self.generate_mass_matrix(m_bar_tail, j_bar_tail)
+
+            else:
+                stiffness[-1, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_fuselage
+                mass[-1, ...] = self.generate_mass_matrix(m_bar_fuselage, j_bar_fuselage)
+                # mass[-1, ...] = self.generate_mass_matrix(m_bar_tail, j_bar_tail)
+
 
 
         ###############
@@ -378,64 +397,67 @@ class FLEXOPStructure:
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1
             boundary_conditions[wn - 1] = -1
+            boundary_conditions[index_tail_start] = 0
+            if tail:
+                ###############
+                # right tail
+                ###############
+                beam_number[we:we + self.n_elem_tail] = 3
+                self.x[wn:wn + self.n_node_tail - 1] = self.x[index_tail_start]
+                wn_right_tail_start = wn
+                n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
+                self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[1:]
+                # Approach 1: Direct transition from one aileron to another aileron
+                n_nodes_per_cs = (self.n_elem_per_elevator)*2+1
 
-            ###############
-            # right tail
-            ###############
-            beam_number[we:we + self.n_elem_tail] = 3
-            self.x[wn:wn + self.n_node_tail - 1] = self.x[index_tail_start]
-            wn_right_tail_start = wn
-            n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
-            self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[1:]
-            # Approach 1: Direct transition from one aileron to another aileron
-            n_nodes_per_cs = (self.n_elem_per_elevator)*2+1
+                for i_control_surface in range(self.n_elev_per_tail_surf):
+                    wn_start = wn +  n_node_junctions - 1 + i_control_surface*(n_nodes_per_cs-1) -1
+                    wn_end= wn_start + n_nodes_per_cs
+                    self.y[wn_start:wn_end] = np.linspace(y_coord_elevators[i_control_surface], 
+                                                        y_coord_elevators[i_control_surface+1], 
+                                                        n_nodes_per_cs)[:]                
+                                        
+                self.x[wn:wn + self.n_node_tail - 1]  += abs(self.y[wn:wn + self.n_node_tail - 1])* np.tan(self.tail_sweep_quarter_chord)
+                self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
+                self.z[wn:wn + self.n_node_tail - 1] += self.y[wn:wn + self.n_node_tail - 1] * np.tan(self.v_tail_angle)
 
-            for i_control_surface in range(self.n_elev_per_tail_surf):
-                wn_start = wn +  n_node_junctions - 1 + i_control_surface*(n_nodes_per_cs-1) -1
-                wn_end= wn_start + n_nodes_per_cs
-                self.y[wn_start:wn_end] = np.linspace(y_coord_elevators[i_control_surface], 
-                                                    y_coord_elevators[i_control_surface+1], 
-                                                    n_nodes_per_cs)[:]                
-                                    
-            self.x[wn:wn + self.n_node_tail - 1]  += abs(self.y[wn:wn + self.n_node_tail - 1])* np.tan(self.tail_sweep_quarter_chord)
-            self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
-            self.z[wn:wn + self.n_node_tail - 1] += self.y[wn:wn + self.n_node_tail - 1] * np.tan(self.v_tail_angle)
+                self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
+                elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
+                for ielem in range(self.n_elem_tail):
+                    conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
+                                        [0, 2, 1])
+                    for inode in range(self.n_node_elem):
+                        frame_of_reference_delta[we + ielem, inode, :] = [-1.0, 0.0, 0.0]     
+                conn[we, 0] =  index_tail_start 
 
-            self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
-            elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
-            for ielem in range(self.n_elem_tail):
-                conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
-                                    [0, 2, 1])
-                for inode in range(self.n_node_elem):
-                    frame_of_reference_delta[we + ielem, inode, :] = [-1.0, 0.0, 0.0]     
-            conn[we, 0] =  index_tail_start 
-            boundary_conditions[wn + self.n_node_tail - 2] = -1
+                we += self.n_elem_tail
+                wn += self.n_node_tail - 1
 
-            we += self.n_elem_tail
-            wn += self.n_node_tail - 1
-            ###############
-            # left tail
-            ###############
-            beam_number[we:we + self.n_elem_tail] = 4
+                boundary_conditions[wn -1] = - 1#+ self.n_node_tail - 2] = -1
+                ###############
+                # left tail
+                ###############
+                beam_number[we:we + self.n_elem_tail] = 4
 
-            self.y[wn:wn + self.n_node_tail - 1] = -self.y[wn-self.n_node_tail+1:wn]
-            self.x[wn:wn + self.n_node_main - 1] = self.x[wn-self.n_node_tail+1:wn]
-            self.z[wn:wn + self.n_node_main - 1] = self.z[wn-self.n_node_tail+1:wn]
+                self.y[wn:wn + self.n_node_tail - 1] = -self.y[wn-self.n_node_tail+1:wn]
+                self.x[wn:wn + self.n_node_main - 1] = self.x[wn-self.n_node_tail+1:wn]
+                self.z[wn:wn + self.n_node_main - 1] = self.z[wn-self.n_node_tail+1:wn]
 
-     
-            self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
-            elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
-            for ielem in range(self.n_elem_tail):
-                conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
-                                    [0, 2, 1])
-                for inode in range(self.n_node_elem):
-                    frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0]
+        
+                self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
+                elem_mass[we:we + self.n_elem_tail] = n_stiffness - 1
+                for ielem in range(self.n_elem_tail):
+                    conn[we + ielem, :] = ((np.ones((3, ))*(we + ielem)*(self.n_node_elem - 1)) +
+                                        [0, 2, 1])
+                    for inode in range(self.n_node_elem):
+                        frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0]
 
-            conn[we, 0] =  index_tail_start 
-            boundary_conditions[wn + self.n_node_tail - 2] = -1
-            we += self.n_elem_tail
-            wn += self.n_node_tail - 1
-
+                conn[we, 0] =  index_tail_start 
+                boundary_conditions[-1] = -1
+                print(self.x)
+                we += self.n_elem_tail
+                wn += self.n_node_tail - 1
+        np.savetxt("connectivities_script.csv", conn)
         with h5.File(self.route + '/' + self.case_name + '.fem.h5', 'a') as h5file:
             h5file.create_dataset('coordinates', data=np.column_stack((self.x, self.y, self.z)))
             h5file.create_dataset('connectivities', data=conn)
