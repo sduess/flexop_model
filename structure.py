@@ -329,13 +329,12 @@ class FLEXOPStructure:
         else:
             n_lumped_mass_wing = int(n_lumped_mass/2)
         for imass in range(n_lumped_mass_wing):
-
+            lumped_mass[imass] =  df_lumped_masses.iloc[imass, 1]
+            lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
+            lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_root # adjust x=0 at LE
+            lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
+            lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 4]
             lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], lumped_mass_position[imass,1])
-            lumped_mass[imass] =  df_lumped_masses.iloc[imass, 1] *9.81
-            lumped_mass_position[imass, 0] = self.x[lumped_mass_nodes[imass]] # df_lumped_masses.iloc[imass, 2]
-            # lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_root # adjust x=0 at LE
-            lumped_mass_position[imass, 1] = self.y[lumped_mass_nodes[imass]] #df_lumped_masses.iloc[imass, 3]
-            lumped_mass_position[imass, 2] = self.z[lumped_mass_nodes[imass]] #df_lumped_masses.iloc[imass, 4]
         
             # Copy to symmetric wing
             idx_symmetric = n_lumped_mass_wing + imass
