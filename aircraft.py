@@ -100,10 +100,12 @@ def get_git_tag(di=FLEXOP_DIRECTORY):
 
 
 def print_git_status():
-    try:
-        version_msg = get_git_tag()
-    except subprocess.CalledProcessError:
-        version_msg = 'unreleased'
+    # try:
+    #     version_msg = get_git_tag()
+    # except subprocess.CalledProcessError:
+    #     version_msg = 'unreleased'
+    version_msg = 'unreleased'  # The above produces an annoying print(Fatal) statement, just overwrite until there is
+    # at least one git tag
 
     return ('FLEXOP Model Git info:'
             '\tThe branch being run is ' + get_git_revision_branch() +
