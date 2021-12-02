@@ -194,28 +194,16 @@ class FLEXOPAero:
         global_node_counter = wn
         jigtwist_elem = np.zeros((self.n_elem_main))
         for i_elem in range(we, we + self.n_elem_main):
-            for i_local_node in range(self.n_node_elem):
-                if not i_local_node == 0:
-                    node_counter += 1
-                inode = node_counter
-                if i_local_node == 1:                
-                    inode += 1
-                    # chord[i_elem, i_local_node] = temp_chord[node_counter + 1]
-                elif i_local_node == 2:
-                    inode -= 1
-                    # chord[i_elem, i_local_node] = temp_chord[node_counter - 1]
+            for i_local_node in [0,2,1]:
+                inode = node_counter + i_local_node
                 chord[i_elem, i_local_node] = temp_chord[inode]
                 # TODO: Set elastic axis
                 # elastic_axis[i_elem, i_local_node] *= chord[i_elem, i_local_node]
                 sweep[i_elem, i_local_node] = temp_sweep[node_counter]
                 # get jig twist            
-                twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
-                if i_local_node == 1:
-                    jigtwist_elem[i_elem] = np.rad2deg(twist[i_elem, i_local_node])
+                twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[inode])
                 elastic_axis[i_elem, i_local_node] = list_spanwise_shear_center[structure.elem_stiffness[i_elem]]
-            global_node_counter += 2
-            s_surface = False
-
+            node_counter += 2
         node_counter = 0
         cs_counter = -1
         cs_surface = False
