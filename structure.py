@@ -49,7 +49,8 @@ j_bar_tail = 0.1
 
 # Material
 material = "reference"
-n_stiffness_wing = 17
+n_stiffness_per_wing = 17
+
 
 
 # Ailerons
@@ -109,7 +110,7 @@ class FLEXOPStructure:
         self.wing_only = kwargs.get('wing_only', True)
         self.lifting_only = kwargs.get('lifting_only', True)
 
-        self.n_stiffness_wing = n_stiffness_wing
+        self.n_stiffness_per_wing = n_stiffness_per_wing
         self.n_ailerons_per_wing = numb_ailerons
         self.n_elev_per_tail_surf = numb_elevators
         self.v_tail_angle = v_tail_angle
@@ -176,7 +177,7 @@ class FLEXOPStructure:
 
 
         # Aeroelastic properties
-        n_stiffness = self.n_stiffness_wing
+        n_stiffness = self.n_stiffness_per_wing * 2
         if not self.wing_only:
             n_stiffness += 2
             if not tail:
@@ -209,7 +210,7 @@ class FLEXOPStructure:
 
             # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
-        for i in  range(self.n_stiffness_wing):
+        for i in  range(int(self.n_stiffness_per_wing * 2)):
             stiffness[i, ...] = list_stiffness_matrix[i] #list_spanwise_stiffness_properties[i]
             mass[i, ...] =  list_mass_matrix[i] #list_spanwise_mass_properties[i]
         if not self.wing_only:
@@ -309,8 +310,8 @@ class FLEXOPStructure:
         for ielem in range(self.n_elem_main):
             conn[we + ielem, :] = ((np.ones((3, ))*(we+ielem)*(self.n_node_elem - 1)) +
                                 [0, 2, 1])
-            self.elem_stiffness[we + ielem] =self.elem_stiffness[ielem]
-            elem_mass[we + ielem] = i_material
+            self.elem_stiffness[we + ielem] =self.elem_stiffness[ielem] + self.n_stiffness_per_wing
+            elem_mass[we + ielem] = elem_mass[ielem] + self.n_stiffness_per_wing
         
             for inode in range(self.n_node_elem):
                 frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0] 
@@ -356,9 +357,7 @@ class FLEXOPStructure:
             z_fuselage = np.delete(z_fuselage, idx_junction)
             self.x[wn:wn + self.n_node_fuselage-1] = x_fuselage 
             self.z[wn:wn + self.n_node_fuselage-1] = z_fuselage
-            adjust = False
 
-            node_fuselage_conn = False
             for ielem in range(self.n_elem_fuselage):
                 conn[we + ielem, :] = ((np.ones((3,))*(we + ielem)*(self.n_node_elem - 1)) +
                                     2 + [0, 2, 1]) - 1
@@ -528,6 +527,7 @@ class FLEXOPStructure:
         counter = 0
         inertia_counter = 0
         row_counter = 0
+        # Right wing
         while counter < matrices_cross_stiffness.shape[0]:
             list_stiffness_matrix.append(np.array(matrices_cross_stiffness[counter:counter+6, :]))
             mass_matrix = np.zeros((6,6))
@@ -539,12 +539,41 @@ class FLEXOPStructure:
             mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
                                                               matrices_cross_first_moment[row_counter,1], 
                                                               matrices_cross_first_moment[row_counter,0])
+
             mass_matrix[:3,3:] = -mass_matrix[3:,:3]
             list_mass_matrix.append(mass_matrix)
             # TODO More elegant solution
             counter += 6
             inertia_counter += 3
             row_counter += 1
+
+        # # left wing
+        for i_material in range (self.n_stiffness_per_wing):
+            # TODO: Check modes
+            # Stiffness matrix
+            stiffness_matrix = list_stiffness_matrix[i_material].copy()
+            stiffness_matrix[2,3] *= -1
+            stiffness_matrix[3,2] *= -1
+            list_stiffness_matrix.append(stiffness_matrix)
+            # Mass matrix
+            mass_matrix = list_mass_matrix[i_material].copy()
+
+            # cg x component mirror in upper right partition
+            mass_matrix[1, 5] *= -1
+            mass_matrix[2, 4] *= -1
+
+            # cg x component mirror in lower left partition
+            mass_matrix[5, 1] *= -1
+            mass_matrix[4, 2] *= -1
+
+            # cg y component mirror in upper right partition
+            mass_matrix[0, 5] *= -1
+            mass_matrix[2, 3] *= -1
+
+            # cg y component mirror in lower left partition
+            mass_matrix[5, 0] *= -1
+            mass_matrix[3, 2] *= -1
+            list_mass_matrix.append(mass_matrix)
         return list_stiffness_matrix, list_mass_matrix, coords[1:,1]   
 
     def generate_mass_matrix(self, m_bar, j_bar):
