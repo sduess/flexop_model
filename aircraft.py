@@ -71,6 +71,11 @@ class FLEXOP:
         config.write()
         self.settings = settings
 
+        # git model filename 
+        git_file_name = self.case_route + '/' + 'flexop_model_info' + self.case_name + '.txt'
+        with open(git_file_name, 'w') as f:
+            f.write(print_git_status())
+
     def clean(self):
         list_files = ['.fem.h5', '.aero.h5', '.nonlifting_body.h5', '.dyn.h5', '.mb.h5', '.sharpy', '.flightcon.txt']
         for file in list_files:
@@ -100,12 +105,10 @@ def get_git_tag(di=FLEXOP_DIRECTORY):
 
 
 def print_git_status():
-    # try:
-    #     version_msg = get_git_tag()
-    # except subprocess.CalledProcessError:
-    #     version_msg = 'unreleased'
-    version_msg = 'unreleased'  # The above produces an annoying print(Fatal) statement, just overwrite until there is
-    # at least one git tag
+    try:
+        version_msg = get_git_tag()
+    except subprocess.CalledProcessError:
+        version_msg = 'unreleased'
 
     return ('FLEXOP Model Git info:'
             '\tThe branch being run is ' + get_git_revision_branch() +
