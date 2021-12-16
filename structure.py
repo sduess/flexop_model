@@ -330,7 +330,7 @@ class FLEXOPStructure:
         else:
             n_lumped_mass_wing = int(n_lumped_mass/2)
         for imass in range(n_lumped_mass_wing):
-            lumped_mass[imass] =  df_lumped_masses.iloc[imass, 1]
+            lumped_mass[imass] =  0 #df_lumped_masses.iloc[imass, 1]
             lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
             lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_root # adjust x=0 at LE
             lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
@@ -529,18 +529,18 @@ class FLEXOPStructure:
         row_counter = 0
         # Right wing
         while counter < matrices_cross_stiffness.shape[0]:
-            list_stiffness_matrix.append(np.array(matrices_cross_stiffness[counter:counter+6, :]))
+            list_stiffness_matrix.append(np.diag(np.diagonal(np.array(matrices_cross_stiffness[counter:counter+6, :]))))
             mass_matrix = np.zeros((6,6))
             # mass distribution
             mass = float(matrices_cross_mass[row_counter])
             for i in range(3):
                 mass_matrix[i,i] = mass
-            mass_matrix[3:,3:] = matrices_cross_moment_of_inertia[inertia_counter:inertia_counter+3,:3]
-            mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
-                                                              matrices_cross_first_moment[row_counter,1], 
-                                                              matrices_cross_first_moment[row_counter,0])
+            mass_matrix[3:,3:] =np.diag(np.diagonal( matrices_cross_moment_of_inertia[inertia_counter:inertia_counter+3,:3]))
+            # mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
+            #                                                   matrices_cross_first_moment[row_counter,1], 
+            #                                                   matrices_cross_first_moment[row_counter,0])
 
-            mass_matrix[:3,3:] = -mass_matrix[3:,:3]
+            # mass_matrix[:3,3:] = -mass_matrix[3:,:3]
             list_mass_matrix.append(mass_matrix)
             # TODO More elegant solution
             counter += 6
