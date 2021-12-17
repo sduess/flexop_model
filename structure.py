@@ -577,8 +577,8 @@ class FLEXOPStructure:
         return list_stiffness_matrix, list_mass_matrix, coords[1:,1]   
 
     def generate_mass_matrix(self, m_bar, j_bar):
-        np.diag([m_bar, m_bar, m_bar, 
-                j_bar, 0.5*j_bar, 0.5*j_bar])
+        return np.diag([m_bar, m_bar, m_bar, 
+                        j_bar, 0.5*j_bar, 0.5*j_bar])
 
     def find_index_of_closest_entry(self, array_values, target_value):
         return np.argmin(np.abs(array_values - target_value))
