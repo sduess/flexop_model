@@ -548,12 +548,22 @@ class FLEXOPStructure:
             row_counter += 1
 
         # # left wing
-        for i_material in range (self.n_stiffness_per_wing):
+        for i_material in range(self.n_stiffness_per_wing):
             # TODO: Check modes
             # Stiffness matrix
             stiffness_matrix = list_stiffness_matrix[i_material].copy()
             stiffness_matrix[2,3] *= -1
             stiffness_matrix[3,2] *= -1
+
+            stiffness_matrix[4,5] *= -1
+            stiffness_matrix[5,4] *= -1
+
+            stiffness_matrix[1,2] *= -1
+            stiffness_matrix[2,1] *= -1
+            
+            stiffness_matrix[0,5] *= -1
+            stiffness_matrix[5,0] *= -1
+
             list_stiffness_matrix.append(stiffness_matrix)
             # Mass matrix
             mass_matrix = list_mass_matrix[i_material].copy()
