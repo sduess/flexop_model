@@ -209,10 +209,8 @@ class FLEXOPAero:
                 # elastic_axis[i_elem, i_local_node] *= chord[i_elem, i_local_node]
                 sweep[i_elem, i_local_node] = temp_sweep[node_counter]
                 # get jig twist            
-                twist[i_elem, i_local_node] = 0 # -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
-                if i_local_node == 1:
-                    jigtwist_elem[i_elem] = np.rad2deg(twist[i_elem, i_local_node])
-                elastic_axis[i_elem, i_local_node] = ea_main # list_spanwise_shear_center[structure.elem_stiffness[i_elem]]
+                twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
+                elastic_axis[i_elem, i_local_node] = list_spanwise_shear_center[structure.elem_stiffness[i_elem]]
             global_node_counter += 2
             s_surface = False
 
