@@ -8,14 +8,19 @@ from scipy.io import loadmat, matlab
 # MODEL GEOMETRY
 # beam
 span_main = 7.07
+half_wing_span = span_main*0.5
 sweep_LE_main = np.deg2rad(20.)
+chord_main_root = 0.471 
+chord_main_tip = 0.236
 
-chord_root = 0.471  #0.5048 (Graph)
-chord_tip = 0.236 
+# calculated inputs
+x_tip = half_wing_span*np.tan(sweep_LE_main)
+sweep_quarter_chord = np.arctan((x_tip+chord_main_tip/4-chord_main_root/4)/(half_wing_span))
+sweep_TE_main= np.arctan((x_tip + chord_main_tip - chord_main_root)/(half_wing_span))
 
 # calculated inputs
 x_tip = span_main*0.5*np.tan(sweep_LE_main)
-sweep_quarter_chord = np.arctan((x_tip+chord_tip/4-chord_root/4)/(span_main*0.5))
+sweep_quarter_chord = np.arctan((x_tip+chord_main_tip/4-chord_main_root/4)/(span_main*0.5))
 
 # Fuselage information
 length_fuselage = 3.44
@@ -586,6 +591,14 @@ class FLEXOPStructure:
             list_mass_matrix.append(mass_matrix)
         return list_stiffness_matrix, list_mass_matrix, coords[1:,1]   
 
+    def get_chord(self, y):
+        if y <= self.y_coord_junction:
+            return chord_main_root
+        else:
+            y -= self.y_coord_junction
+            x_LE = np.tan(sweep_LE_main) * y
+            x_TE = chord_main_root + np.tan(sweep_TE_main) * y
+            return abs(x_LE - x_TE)
     def generate_mass_matrix(self, m_bar, j_bar):
         np.diag([m_bar, m_bar, m_bar, 
                 j_bar, 0.5*j_bar, 0.5*j_bar])
@@ -607,6 +620,57 @@ class FLEXOPStructure:
         matrix[1,2] = -x
         matrix[2,1] = +x
         return matrix
+
+    def calculate_aircraft_mass(self):
+        # get structural mass for each component (beam ID)
+        list_elem_mass = []
+        center_of_gravity = np.zeros((3, ))
+        for i_elem in range(self.n_elem):
+            start_node = self.conn[i_elem, 0]
+            end_node = self.conn[i_elem, 1]
+            # calculate length assuming that elem is straight (unloaded)
+            length_elem = np.sqrt((self.x[start_node]-self.x[end_node])**2 
+                                  + (self.y[start_node]-self.y[end_node])**2 
+                                  +(self.z[start_node]-self.z[end_node])**2 )
+            distance = [(self.x[start_node] + self.x[end_node])/2,
+                        (self.y[start_node] + self.y[end_node])/2,
+                        (self.z[start_node] + self.z[end_node])/2]
+            print(distance)
+            distributed_mass_elem = self.mass[self.elem_mass[i_elem], 0, 0]
+            mass_elem = distributed_mass_elem * length_elem
+            list_elem_mass.append(mass_elem)
+            for i_dim in range(3):
+                center_of_gravity[i_dim] += mass_elem * distance[i_dim]
+        total_mass_structure = sum(list_elem_mass)
+        
+        for i_beam in set(self.beam_number):
+            structural_mass_beam = sum(np.array(list_elem_mass)[self.beam_number == int(i_beam)])
+            print("Total structural mass for beam {} is {} kg".format(i_beam, structural_mass_beam))
+        for i_mass in range(len(self.lumped_mass)):            
+            for i_dim in range(3):
+                center_of_gravity[i_dim] +=  self.lumped_mass[i_mass] * self.lumped_mass_position[i_mass, i_dim]
+        total_mass_lumped_masses = sum(self.lumped_mass)
+        total_mass = total_mass_lumped_masses + total_mass_structure
+        center_of_gravity /= total_mass
+        center_of_gravity[0] -= min(self.x)
+        print("x nose = ", min(self.x))
+        print("x junction = ", self.x[0])
+        print("Total structural mass = ", total_mass_structure)
+        print("Total lumped masses ", sum(self.lumped_mass))
+        print("Total mass aircraft = ", total_mass)
+        print("Center of Gravity = ", center_of_gravity)
+        print("Center of Gravity - difference = ", center_of_gravity - [0.606, -0.1, -0.25])
+
+    def read_spanwise_shear_center(self):
+        reference_shear_center = 0.71 # given by Jurij
+        df = pd.read_csv(self.source_directory + '/shear_center.csv',
+                                sep=';')
+        if self.material == "reference":
+            column = 1
+        else:
+            column = 2
+        print(self.material, column)
+        return (reference_shear_center + df.iloc[:,column]).to_list()
 
 def load_mat(filename):
     """
