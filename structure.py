@@ -334,7 +334,7 @@ class FLEXOPStructure:
         # Set lumped masses wing
 
         for imass in range(n_lumped_mass_wing):
-            self.lumped_mass[imass] = 0 # df_lumped_masses.iloc[imass, 1]
+            self.lumped_mass[imass] = df_lumped_masses.iloc[imass, 1]
             self.lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
             self.lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_main_root # adjust x=0 at LE(is this correct?)
             self.lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
