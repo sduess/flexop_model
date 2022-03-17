@@ -678,8 +678,8 @@ class FLEXOPStructure:
             # mass_matrix[4, 0] *= -1
             # mass_matrix[3, 1] *= -1
             # 45 - Iyz - not checked
-            # mass_matrix[4, 5] *= -1
-            # mass_matrix[5, 4] *= -1
+            mass_matrix[4, 5] *= -1
+            mass_matrix[5, 4] *= -1
 
             # # 34 - Ixy -not  checked
             # mass_matrix[4, 3] *= -1
