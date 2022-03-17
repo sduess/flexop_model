@@ -663,12 +663,12 @@ class FLEXOPStructure:
             mass_matrix[4, 2] *= -1
 
             # cg y component mirror in upper right partition
-            # mass_matrix[0, 5] *= -1
-            # mass_matrix[2, 3] *= -1
+            mass_matrix[0, 5] *= -1
+            mass_matrix[2, 3] *= -1
 
-            # # cg y component mirror in lower left partition
-            # mass_matrix[5, 0] *= -1
-            # mass_matrix[3, 2] *= -1            
+            # cg y component mirror in lower left partition
+            mass_matrix[5, 0] *= -1
+            mass_matrix[3, 2] *= -1            
             
             # # # # cg z component mirror in upper right partition
             # mass_matrix[0, 4] *= -1
