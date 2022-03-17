@@ -602,7 +602,7 @@ class FLEXOPStructure:
             
             mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
                                                               matrices_cross_first_moment[row_counter,1], 
-                                                              matrices_cross_first_moment[row_counter,0])
+                                                             0) # matrices_cross_first_moment[row_counter,0])
             list_Jy.append(matrices_cross_first_moment[row_counter,1])
             mass_matrix[:3,3:] = -mass_matrix[3:,:3]
             
