@@ -359,12 +359,12 @@ class FLEXOPStructure:
             ###############
             # set_lumped_mass(mass, position, nodes)
             # lumped_mass payload
-            self.lumped_mass[-4] = 0 #30. # kg
-            self.lumped_mass_position[-4, 0] = -0.6
+            self.lumped_mass[-4] = 40. # kg
+            self.lumped_mass_position[-4, 0] = -0.8
             self.lumped_mass_position[-4, 1] = 0
             self.lumped_mass_position[-4, 2] = 0
             self.lumped_mass_nodes[-4] = self.find_index_of_closest_entry(self.x[:self.n_node_fuselage], self.lumped_mass_position[-4,0])
-
+            print(self.x)
             # lumped_mass fuel
             # self.lumped_mass[-3] = 5. # kg
             # self.lumped_mass_position[-3, 0] = 0.2
@@ -632,9 +632,10 @@ class FLEXOPStructure:
             # stiffness_matrix[0,4] *= -1
             # stiffness_matrix[4,0] *= -1
 
-            # To be checked:
+            # Checked:Definitley not!
             # stiffness_matrix[1,3] *= -1
             # stiffness_matrix[3,1] *= -1
+
             list_stiffness_matrix.append(stiffness_matrix)
 
 
@@ -653,7 +654,7 @@ class FLEXOPStructure:
         for ielem in range(self.n_elem_main):
             # Mass matrix
             mass_matrix = list_mass_matrix[ielem].copy()
-            print(mass_matrix)
+            # print(mass_matrix)
             # cg x component mirror in upper right partition
             mass_matrix[1, 5] *= -1
             mass_matrix[2, 4] *= -1
@@ -670,22 +671,23 @@ class FLEXOPStructure:
             mass_matrix[5, 0] *= -1
             mass_matrix[3, 2] *= -1            
             
-            # # # # cg z component mirror in upper right partition
+            # # cg z component mirror in upper right partition - definitely not (checked)
             # mass_matrix[0, 4] *= -1
             # mass_matrix[1, 3] *= -1
 
-            # # # cg z component mirror in lower left partition
+            # # cg z component mirror in lower left partition -definitely not (checked)
             # mass_matrix[4, 0] *= -1
             # mass_matrix[3, 1] *= -1
+
             # 45 - Iyz - not checked
             mass_matrix[4, 5] *= -1
             mass_matrix[5, 4] *= -1
 
-            # # 34 - Ixy -not  checked
+            # # 34 - Ixy - zero anyway
             # mass_matrix[4, 3] *= -1
             # mass_matrix[3, 4] *= -1
 
-            # # 35 - Ixz -not  checked
+            # # 35 - Ixz  - zero anyway
             # mass_matrix[3, 5] *= -1
             # mass_matrix[5, 3] *= -1
 
