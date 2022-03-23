@@ -25,7 +25,7 @@ sweep_quarter_chord = np.arctan((x_tip+chord_main_tip/4-chord_main_root/4)/(span
 # Fuselage information
 length_fuselage = 3.44
 offset_fuselage_vertical = 0
-offset_wing_nose = 0.8842 + 0.09#0.8822765386648912
+offset_wing_nose = 0.87692 + chord_main_root * 0.57 # see FLEXOP Report wing COS position (0.57 := shear center y=0)
 offset_tail_nose = 2.86236881559
 sigma_fuselage = 10
 m_bar_fuselage = 0.3
