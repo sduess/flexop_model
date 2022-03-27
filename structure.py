@@ -357,15 +357,7 @@ class FLEXOPStructure:
             ###############
             # fuselage
             ###############
-            # set_lumped_mass(mass, position, nodes)
-            # lumped_mass payload
-            self.lumped_mass[-4] = 40. # kg
-            self.lumped_mass_position[-4, 0] = -0.8
-            self.lumped_mass_position[-4, 1] = 0
-            self.lumped_mass_position[-4, 2] = 0
-            self.lumped_mass_nodes[-4] = self.find_index_of_closest_entry(self.x[:self.n_node_fuselage], self.lumped_mass_position[-4,0])
-            print(self.x)
-            # lumped_mass fuel
+             # lumped_mass fuel
             # self.lumped_mass[-3] = 5. # kg
             # self.lumped_mass_position[-3, 0] = 0.2
             # self.lumped_mass_position[-3, 1] = 0
@@ -414,6 +406,13 @@ class FLEXOPStructure:
                     break
             boundary_conditions[wn] = - 1
 
+            # set_lumped_mass(mass, position, nodes)
+            self.lumped_mass[-1] = 42 #40 #42. # kg
+            self.lumped_mass_position[-1, 0] = -0.3 #-0.7
+            self.lumped_mass_position[-1, 1] = 0
+            self.lumped_mass_position[-1, 2] = 0
+            self.lumped_mass_nodes[-1] = wn +  self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage], self.lumped_mass_position[-1,0])
+            self.x[wn:wn + self.n_node_fuselage]
 
             if tail:
                 self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
