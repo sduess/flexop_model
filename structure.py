@@ -41,7 +41,7 @@ tail_span = 2*half_tail_span
 
 # calculated inputs
 tail_x_tip = half_tail_span*np.tan(tail_sweep_LE)
-tail_chord_root = tail_x_tip + tail_chord_tip - half_tail_span*np.tan(tail_sweep_TE)
+tail_chord_root = 0.35 # tail_x_tip + tail_chord_tip - half_tail_span*np.tan(tail_sweep_TE)
 tail_sweep_quarter_chord = np.arctan((tail_x_tip+tail_chord_tip/4-tail_chord_root/4)/(half_tail_span))
 
 v_tail_angle = np.deg2rad(35.)
@@ -421,17 +421,17 @@ class FLEXOPStructure:
             else:
                 self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 1
                 self.elem_mass[we:we + self.n_elem_fuselage] = n_mass - 1
-            index_tail_start = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], offset_tail_nose-offset_wing_nose)
+            self.index_tail_start = wn + self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage-1], offset_tail_nose-offset_wing_nose)
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1
             boundary_conditions[wn - 1] = -1
-            boundary_conditions[index_tail_start] = 0
+            boundary_conditions[self.index_tail_start] = 0
             if tail:
                 ###############
                 # right tail
                 ###############
                 self.beam_number[we:we + self.n_elem_tail] = 3
-                self.x[wn:wn + self.n_node_tail - 1] = self.x[index_tail_start]
+                self.x[wn:wn + self.n_node_tail - 1] = self.x[self.index_tail_start]
                 wn_right_tail_start = wn
                 n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
                 self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[1:]
@@ -446,7 +446,7 @@ class FLEXOPStructure:
                                                         n_nodes_per_cs)[:]                
                                         
                 self.x[wn:wn + self.n_node_tail - 1]  += abs(self.y[wn:wn + self.n_node_tail - 1])* np.tan(self.tail_sweep_quarter_chord)
-                self.z[wn:wn + self.n_node_tail - 1] = self.z[index_tail_start]
+                self.z[wn:wn + self.n_node_tail - 1] = self.z[self.index_tail_start]
                 self.z[wn:wn + self.n_node_tail - 1] += self.y[wn:wn + self.n_node_tail - 1] * np.tan(self.v_tail_angle)
 
                 self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
@@ -456,7 +456,7 @@ class FLEXOPStructure:
                                         [0, 2, 1])
                     for inode in range(self.n_node_elem):
                         frame_of_reference_delta[we + ielem, inode, :] = [-1.0, 0.0, 0.0]     
-                self.conn[we, 0] =  index_tail_start 
+                self.conn[we, 0] =  self.index_tail_start 
 
                 we += self.n_elem_tail
                 wn += self.n_node_tail - 1
@@ -480,7 +480,7 @@ class FLEXOPStructure:
                     for inode in range(self.n_node_elem):
                         frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0]
 
-                self.conn[we, 0] =  index_tail_start 
+                self.conn[we, 0] =  self.index_tail_start 
                 boundary_conditions[-1] = -1
                 print(self.x)
                 we += self.n_elem_tail

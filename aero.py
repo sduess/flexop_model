@@ -21,7 +21,7 @@ sweep_TE_main= np.arctan((x_tip + chord_main_tip - chord_main_root)/(half_wing_s
 
 
 # Geometry parameters tail
-chord_tail_root = 0.21717159844088685
+chord_tail_root = 0.34 #0.21717159844088685
 chord_tail_tip = 0.180325
 
 v_tail_angle =  np.deg2rad(35.)
@@ -158,12 +158,12 @@ class FLEXOPAero:
             # rudder 1 - used for trim
             control_surface_type[4]  = 0
             control_surface_deflection[4]  = np.deg2rad(self.cs_deflection)
-            control_surface_chord[4]  =  m/4 # Flexop's elevator cs have a ,chord of 36%. problems with aerogrid discretization
+            control_surface_chord[4]  =  m/2 # Flexop's elevator cs have a ,chord of 36%. problems with aerogrid discretization
             control_surface_hinge_coord[4]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
             # rudder 2
             control_surface_type[5]  = 0
             control_surface_deflection[5]  = 0
-            control_surface_chord[5]  = m/4  # Flexop@s elevator cs have a ,chord of 36%. problems with aerogrid discretization
+            control_surface_chord[5]  = m/2  # Flexop@s elevator cs have a ,chord of 36%. problems with aerogrid discretization
             control_surface_hinge_coord[5]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
        
         # list_cs_deflection_test = [-45, 45, -60, 60, -30, 30]
@@ -299,6 +299,7 @@ class FLEXOPAero:
             # aero_node[wn:] = True
 
             if self.lifting_only:
+                aero_node[self.structure.index_tail_start] = True
                 aero_node[wn:wn + self.n_node_tail] = True
             else:
                 aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04
@@ -351,7 +352,6 @@ class FLEXOPAero:
             airfoil_distribution[we:we + self.n_elem_tail, :] = 2
             surface_distribution[we:we + self.n_elem_tail] = i_surf
             surface_m[i_surf] = m
-            aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] <= -0.04
 
             if self.lifting_only:
                 aero_node[wn:wn + self.n_node_tail] = True
