@@ -408,7 +408,7 @@ class FLEXOPStructure:
 
             # set_lumped_mass(mass, position, nodes)
             self.lumped_mass[-1] = 42 #40 #42. # kg
-            self.lumped_mass_position[-1, 0] = -0.3 #-0.7
+            self.lumped_mass_position[-1, 0] = 0.3 #-0.7
             self.lumped_mass_position[-1, 1] = 0
             self.lumped_mass_position[-1, 2] = 0
             self.lumped_mass_nodes[-1] = wn +  self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage], self.lumped_mass_position[-1,0])
