@@ -120,7 +120,7 @@ class FLEXOPStructure:
         self.n_elev_per_tail_surf = numb_elevators
         self.v_tail_angle = v_tail_angle
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
-        self.sweep_quarter_chord = sweep_quarter_chord
+        self.sweep_quarter_chord = 0.319923584301128
 
         self.source_directory = source_directory
 
@@ -191,11 +191,11 @@ class FLEXOPStructure:
                 n_stiffness -= 1
                 n_mass -= 1
         # TODO: Adjust for paper values (To I have to update j bar then)
-        m_bar_fuselage = 0.3 #* 10
+        m_bar_fuselage = 0.3 * 10
         j_bar_fuselage = 0.08
 
         sigma_tail = 100
-        m_bar_tail = 0.3 #* 4
+        m_bar_tail = 0.3 * 4
         j_bar_tail = 0.08
 
         # beam
@@ -407,10 +407,11 @@ class FLEXOPStructure:
             boundary_conditions[wn] = - 1
 
             # set_lumped_mass(mass, position, nodes)
-            self.lumped_mass[-1] = 42 #40 #42. # kg
-            self.lumped_mass_position[-1, 0] = 0.3 #-0.7
+            # lumped_mass payload
+            self.lumped_mass[-1] = 42 - 10.799 #11.199 #40 #42. # kg
+            self.lumped_mass_position[-1, 0] = 0.15 #-0.7
             self.lumped_mass_position[-1, 1] = 0
-            self.lumped_mass_position[-1, 2] = 0
+            self.lumped_mass_position[-1, 2] = -0.525 #0
             self.lumped_mass_nodes[-1] = wn +  self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage], self.lumped_mass_position[-1,0])
             self.x[wn:wn + self.n_node_fuselage]
 
