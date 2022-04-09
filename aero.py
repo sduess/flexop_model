@@ -162,7 +162,7 @@ class FLEXOPAero:
             control_surface_hinge_coord[4]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
             # rudder 2
             control_surface_type[5]  = 0
-            control_surface_deflection[5]  = 0
+            control_surface_deflection[5]  = np.deg2rad(self.cs_deflection)# np.deg2rad(self.cs_deflection)
             control_surface_chord[5]  = m/2  # Flexop@s elevator cs have a ,chord of 36%. problems with aerogrid discretization
             control_surface_hinge_coord[5]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
        
