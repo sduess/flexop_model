@@ -321,7 +321,7 @@ class FLEXOPStructure:
         
             for inode in range(self.n_node_elem):
                 frame_of_reference_delta[we + ielem, inode, :] = [1.0, 0.0, 0.0] 
-                self.elastic_axis[we + ielem, inode] = self.elastic_axis[we, inode]
+                self.elastic_axis[we + ielem, inode] = self.elastic_axis[ielem, inode]
 
         self.conn[we, 0] = 0
         boundary_conditions[wn-1] = -1 # tip right wing
