@@ -115,6 +115,8 @@ class FLEXOPStructure:
         self.wing_only = kwargs.get('wing_only', True)
         self.lifting_only = kwargs.get('lifting_only', True)
 
+        self.ignore_lumped_masses_wing = kwargs.get('ignore_lumped_masses_wing', False)
+
         self.n_stiffness_per_wing = n_stiffness_per_wing
         self.n_ailerons_per_wing = numb_ailerons
         self.n_elev_per_tail_surf = numb_elevators
@@ -330,46 +332,11 @@ class FLEXOPStructure:
         wn += self.n_node_main - 1
 
         boundary_conditions[wn-1] = -1 # tip left wing
-        np.savetxt("elem_stiffness.csv", self.elem_stiffness)
+        np.savetxt("elem_stiffness.csv", np.transpose(np.array([self.beam_number,self.elem_stiffness])))
         # Set lumped masses wing
-
-        for imass in range(n_lumped_mass_wing):
-            self.lumped_mass[imass] = df_lumped_masses.iloc[imass, 1]
-            self.lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
-            self.lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_main_root # adjust x=0 at LE(is this correct?)
-            self.lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
-            self.lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 4]
-            self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], self.lumped_mass_position[imass,1])
-        
-            # Copy to symmetric wing
-            idx_symmetric = n_lumped_mass_wing + imass
-            if self.lumped_mass_position[imass, 1] != 0.0:
-                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
-                self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
-                self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
-                self.lumped_mass_position[idx_symmetric, 2] =  self.lumped_mass_position[imass, 2] 
-                self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
-        np.savetxt("lumped_mass_position.csv", self.lumped_mass_position)
-        np.savetxt("lumped_mass_weight.csv", self.lumped_mass)
-        np.savetxt("lumped_mass_nodes.csv", self.lumped_mass_nodes)
-        np.savetxt("lumped_masses.csv", (self.lumped_mass_nodes, self.lumped_mass_position[:, 0], self.lumped_mass_position[:, 1], self.lumped_mass_position[:, 2], self.lumped_mass))
-        if not self.wing_only:
-            ###############
-            # fuselage
-            ###############
-             # lumped_mass fuel
-            # self.lumped_mass[-3] = 5. # kg
-            # self.lumped_mass_position[-3, 0] = 0.2
-            # self.lumped_mass_position[-3, 1] = 0
-            # self.lumped_mass_position[-3, 2] = 0
-            # self.lumped_mass_nodes[-3] = self.find_index_of_closest_entry(self.x[:self.n_node_fuselage], self.lumped_mass_position[-3, 0])
-
-            # lumped_mass[0] = 20 #mass_take_offself.n_node_main
-            # lumped_mass_position[0, 0] = self.x[wn + 4]
-            # lumped_mass_position[0, 1] = self.y[wn + 4]
-            # lumped_mass_position[0, 2] = self.z[wn + 4]
-            # lumped_mass_nodes[0] = wn + 4
+        self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
             
+        if not self.wing_only:          
             # remember this is in B FoR
             self.beam_number[we:we + self.n_elem_fuselage] = 2
             x_fuselage = np.linspace(0.0, length_fuselage, self.n_node_fuselage) - offset_wing_nose
@@ -405,15 +372,6 @@ class FLEXOPStructure:
                         self.conn[we + ielem + 1, 0] = 0
                     break
             boundary_conditions[wn] = - 1
-
-            # set_lumped_mass(mass, position, nodes)
-            # lumped_mass payload
-            self.lumped_mass[-1] = 42 - 10.799 #11.199 #40 #42. # kg
-            self.lumped_mass_position[-1, 0] = 0.15 #-0.7
-            self.lumped_mass_position[-1, 1] = 0
-            self.lumped_mass_position[-1, 2] = -0.525 #0
-            self.lumped_mass_nodes[-1] = wn +  self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage], self.lumped_mass_position[-1,0])
-            self.x[wn:wn + self.n_node_fuselage]
 
             if tail:
                 self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
@@ -486,6 +444,17 @@ class FLEXOPStructure:
                 we += self.n_elem_tail
                 wn += self.n_node_tail - 1
 
+        # lumped masses 
+        # Set lumped masses wing
+        self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
+        if not self.wing_only:
+            wn_fuselage_start = self.n_node_main  * 2- 1
+            self.lumped_mass[-1] = 42 - 10.799 # + 10.31 #11.199 #40 #42. # kg
+            self.lumped_mass_position[-1, 0] = 0.220 #0.195
+            self.lumped_mass_position[-1, 1] = 0
+            self.lumped_mass_position[-1, 2] = 0 #-0.525 #0
+            self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], self.lumped_mass_position[-1,0])
+
 
         # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
@@ -533,7 +502,41 @@ class FLEXOPStructure:
             h5file.create_dataset('lumped_mass_inertia', data=self.lumped_mass_inertia)
             h5file.create_dataset('lumped_mass_position', data=self.lumped_mass_position)
 
-    def set_lumped_mass(self, mass, position, nodes):
+    def place_lumped_masses_wing(self, df_lumped_masses, n_lumped_mass_wing):
+            for imass in range(n_lumped_mass_wing):                
+                self.lumped_mass[imass] =  df_lumped_masses.iloc[imass, 0]
+                self.lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 1]
+                self.lumped_mass_position[imass, 0] -= 0.24 # (0.71-0.140615385) *chord_main_root # adjust x=0 at LE(is this correct?) #0.253747321168682 #
+
+                self.lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 2]
+                self.lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 3]
+                if self.ignore_lumped_masses_wing:
+                    # self.lumped_mass[imass] = 0.
+                    self.lumped_mass_position[imass, 1] = 0.
+                    wn_fuselage_start = 2*self.n_node_main
+                    wn_fuselage_end = wn_fuselage_start + self.n_node_fuselage 
+                    self.lumped_mass_nodes[imass] = wn_fuselage_start + self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_end], self.lumped_mass_position[imass,0])
+                    np.savetxt("x_coordinates.csv", self.x)
+                else:
+                    self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], self.lumped_mass_position[imass,1])
+                idx_symmetric = n_lumped_mass_wing + imass
+                # if self.lumped_mass_position[imass, 1] != 0.0:
+                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
+                self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
+                self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
+                self.lumped_mass_position[idx_symmetric, 2] =  self.lumped_mass_position[imass, 2] 
+                if self.ignore_lumped_masses_wing:
+                    self.lumped_mass_nodes[idx_symmetric] = self.lumped_mass_nodes[imass]
+                else:
+                    if self.lumped_mass_nodes[imass] == 0:
+                        self.lumped_mass_nodes[idx_symmetric] = 0
+                        # self.lumped_mass[idx_symmetric] = 0.
+                    else:
+                        self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
+    def set_lumped_mass_and_position(self, imass, mass, position, nodes):
+        self.lumped_mass[imass] =  mass
+        self.lumped_mass_position[imass, :] = position
+        self.lumped_mass_position[imass, 0] -= 0.24
         pass
 
     def load_y_cross_sections(self):
@@ -714,7 +717,7 @@ class FLEXOPStructure:
 
     def read_lumped_masses(self):
         file = self.source_directory + '/lumped_masses.csv'
-        df = pd.read_csv(file, sep=';')
+        df = pd.read_csv(file, sep=';', header = None)
         return df
 
     def get_first_moment_matrix(self, Jx,Jy,Jz):
