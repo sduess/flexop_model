@@ -710,34 +710,60 @@ class FLEXOPStructure:
             length_elem = np.sqrt((self.x[start_node]-self.x[end_node])**2 
                                   + (self.y[start_node]-self.y[end_node])**2 
                                   +(self.z[start_node]-self.z[end_node])**2 )
-            distance = [(self.x[start_node] + self.x[end_node])/2,
-                        (self.y[start_node] + self.y[end_node])/2,
-                        (self.z[start_node] + self.z[end_node])/2]
-            print(distance)
+            distance = [self.x[self.conn[i_elem, -1]],
+                        self.y[self.conn[i_elem, -1]],
+                        self.z[self.conn[i_elem, -1]]]
             distributed_mass_elem = self.mass[self.elem_mass[i_elem], 0, 0]
             mass_elem = distributed_mass_elem * length_elem
             list_elem_mass.append(mass_elem)
+            
             for i_dim in range(3):
                 center_of_gravity[i_dim] += mass_elem * distance[i_dim]
         total_mass_structure = sum(list_elem_mass)
         
+        print("Total structural mass = ", total_mass_structure)
         for i_beam in set(self.beam_number):
             structural_mass_beam = sum(np.array(list_elem_mass)[self.beam_number == int(i_beam)])
             print("Total structural mass for beam {} is {} kg".format(i_beam, structural_mass_beam))
-        for i_mass in range(len(self.lumped_mass)):            
-            for i_dim in range(3):
-                center_of_gravity[i_dim] +=  self.lumped_mass[i_mass] * self.lumped_mass_position[i_mass, i_dim]
+        
+        # Get lumped masses
+
+        df_lumped_masses = self.read_lumped_masses()
+        n_lumped_masses_wing = df_lumped_masses.shape[0]
+        
+        for i_mass in range(len(self.lumped_mass)):      
+                  
+            if i_mass < n_lumped_masses_wing:
+                position_G_frame = np.array(df_lumped_masses.iloc[i_mass, 1:4])
+                position_G_frame[0] -= 0.24
+                center_of_gravity[:] += np.dot(self.lumped_mass[i_mass], position_G_frame)
+                # considered mirrored wing
+                position_G_frame[1] *= -1
+                center_of_gravity[:] += np.dot(self.lumped_mass[i_mass], position_G_frame)
+            elif i_mass < n_lumped_masses_wing * 2:
+                # Skip left wing as it contributions to the cg has been calculated before
+                pass
+            else:
+
+                print("imass {} with weight {}".format(i_mass, self.lumped_mass[i_mass]))
+                
+                if self.lumped_mass[i_mass] > 0:
+                    print("imass = ", i_mass)
+                    center_of_gravity[0] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 0] + self.x[self.lumped_mass_nodes[i_mass]])
+                    center_of_gravity[1] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 1] + self.y[self.lumped_mass_nodes[i_mass]])
+                    center_of_gravity[2] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 2] + self.z[self.lumped_mass_nodes[i_mass]])
+
         total_mass_lumped_masses = sum(self.lumped_mass)
         total_mass = total_mass_lumped_masses + total_mass_structure
         center_of_gravity /= total_mass
-        center_of_gravity[0] -= min(self.x)
+        
         print("x nose = ", min(self.x))
         print("x junction = ", self.x[0])
-        print("Total structural mass = ", total_mass_structure)
+        print("x tail = ", max(self.x))
         print("Total lumped masses ", sum(self.lumped_mass))
         print("Total mass aircraft = ", total_mass)
         print("Center of Gravity = ", center_of_gravity)
-        print("Center of Gravity - difference = ", center_of_gravity - [0.606, -0.1, -0.25])
+        print("Center of Gravity - difference = ", center_of_gravity - [0.606 + 0.8769 +   min(self.x), -0.1, -0.25])
 
     def read_spanwise_shear_center(self):
         reference_shear_center = 0.71 # given by Jurij
