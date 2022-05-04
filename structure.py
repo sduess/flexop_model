@@ -516,14 +516,12 @@ class FLEXOPStructure:
                 self.lumped_mass_position[idx_symmetric, 2] = self.lumped_mass_position[imass, 2] 
 
                     
-    def set_lumped_mass_position_B_frame(self, imass, position, inode, mirrored = False):
+    def set_lumped_mass_position_B_frame(self, imass, position, inode):
         """
         This function converts the lumped mass position given in the G frame into the local coordinate of the linked structural node.
 
         """
-        if mirrored:
-            position[1] *= 1
-        position[0] -= 0.24
+        position[0] -= 0.22
         self.lumped_mass_position[imass, 2] = position[2]
         self.lumped_mass_position[imass, 0] = position[1] - self.y[inode]
         self.lumped_mass_position[imass, 1] = position[0] - self.x[inode]
