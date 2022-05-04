@@ -324,8 +324,6 @@ class FLEXOPStructure:
         wn += self.n_node_main - 1
         boundary_conditions[wn-1] = -1 # tip left wing
 
-        # Set lumped masses wing
-        self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
             
         if not self.wing_only:          
             # remember this is in B FoR
@@ -435,16 +433,18 @@ class FLEXOPStructure:
 
         # lumped masses 
         self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
+
+        self.lumped_mass[-1] = 42 - 10.799 - 0.35833756498172# payload, kg
+        self.lumped_mass_position[-1, 0] = 0 
+        self.lumped_mass_position[-1, 1] = 0
+        self.lumped_mass_position[-1, 2] = -0.25
+        x_lm_payload = 0.2170 
         if not self.wing_only:
             wn_fuselage_start = self.n_node_main  * 2- 1
-            self.lumped_mass[-1] = 42 - 10.799 # payload, kg
-            self.lumped_mass_position[-1, 0] = 0 
-            self.lumped_mass_position[-1, 1] = 0
-            self.lumped_mass_position[-1, 2] = 0
-            x_lm_payload = 0.20
             self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
-
-
+        else:
+            self.lumped_mass_nodes[-1] = 0
+        self.lumped_mass_position[-1, 0] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
 
         # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
