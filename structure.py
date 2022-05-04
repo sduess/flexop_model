@@ -160,8 +160,7 @@ class FLEXOPStructure:
         self.lumped_mass = np.zeros((n_lumped_mass, ))
         self.lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))
         self.lumped_mass_position = np.zeros((n_lumped_mass, 3))
-        x_lumped_mass = 0.606 - offset_wing_nose
-                # total number of elements
+            # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
         if not self.wing_only:
             self.n_elem += self.n_elem_fuselage
@@ -229,10 +228,6 @@ class FLEXOPStructure:
             file = self.source_directory + '/dynamics_tailored.mat'
 
         matlab_data = load_mat(file)
-        matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C'] * self.sigma
-        matrices_cross_mass = matlab_data['dynamics']['str']['elm']['A']
-        matrices_cross_moment_of_inertia = matlab_data['dynamics']['str']['elm']['I']
-        matrices_cross_first_moment = matlab_data['dynamics']['str']['elm']['Q']
         nodal_coordinates = matlab_data['dynamics']['str']['xyz']
         N_nodes = int(matlab_data['dynamics']['str']['Nnode'])
 
@@ -440,20 +435,19 @@ class FLEXOPStructure:
 
                 self.conn[we, 0] =  self.index_tail_start 
                 boundary_conditions[-1] = -1
-                print(self.x)
                 we += self.n_elem_tail
                 wn += self.n_node_tail - 1
 
         # lumped masses 
-        # Set lumped masses wing
         self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
         if not self.wing_only:
             wn_fuselage_start = self.n_node_main  * 2- 1
-            self.lumped_mass[-1] = 42 - 10.799 # + 10.31 #11.199 #40 #42. # kg
-            self.lumped_mass_position[-1, 0] = 0.220 #0.195
+            self.lumped_mass[-1] = 42 - 10.799 # payload, kg
+            self.lumped_mass_position[-1, 0] = 0 
             self.lumped_mass_position[-1, 1] = 0
-            self.lumped_mass_position[-1, 2] = 0 #-0.525 #0
-            self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], self.lumped_mass_position[-1,0])
+            self.lumped_mass_position[-1, 2] = 0
+            x_lm_payload = 0.20
+            self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
 
 
         # Stiffness and mass properties
@@ -480,7 +474,7 @@ class FLEXOPStructure:
                 stiffness[-1, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_fuselage
                 self.mass[-1, ...] = self.generate_mass_matrix(m_bar_fuselage, j_bar_fuselage)
                 # self.mass[-1, ...] = self.generate_mass_matrix(m_bar_tail, j_bar_tail)
-
+        # np.savetxt("connectivities_script.csv", self.conn)
         np.savetxt("connectivities_script.csv", self.conn)
         with h5.File(self.route + '/' + self.case_name + '.fem.h5', 'a') as h5file:
             h5file.create_dataset('coordinates', data=np.column_stack((self.x, self.y, self.z)))
@@ -505,39 +499,41 @@ class FLEXOPStructure:
     def place_lumped_masses_wing(self, df_lumped_masses, n_lumped_mass_wing):
             for imass in range(n_lumped_mass_wing):                
                 self.lumped_mass[imass] =  df_lumped_masses.iloc[imass, 0]
-                self.lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 1]
-                self.lumped_mass_position[imass, 0] -= 0.24 # (0.71-0.140615385) *chord_main_root # adjust x=0 at LE(is this correct?) #0.253747321168682 #
-
-                self.lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 2]
-                self.lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 3]
-                if self.ignore_lumped_masses_wing:
-                    # self.lumped_mass[imass] = 0.
-                    self.lumped_mass_position[imass, 1] = 0.
-                    wn_fuselage_start = 2*self.n_node_main
-                    wn_fuselage_end = wn_fuselage_start + self.n_node_fuselage 
-                    self.lumped_mass_nodes[imass] = wn_fuselage_start + self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_end], self.lumped_mass_position[imass,0])
-                    np.savetxt("x_coordinates.csv", self.x)
-                else:
-                    self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], self.lumped_mass_position[imass,1])
+                self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], 
+                                                                                 df_lumped_masses.iloc[imass,1])
+                self.set_lumped_mass_position_B_frame(imass,
+                                                      np.array(df_lumped_masses.iloc[imass, 1:4]),
+                                                      self.lumped_mass_nodes[imass])
+                # mirror lumped masses for left wing
                 idx_symmetric = n_lumped_mass_wing + imass
-                # if self.lumped_mass_position[imass, 1] != 0.0:
+                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]                 
+                if self.lumped_mass_nodes[imass] == 0:
+                    self.lumped_mass_nodes[idx_symmetric] = 0
+                else:
+                    self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
+                
                 self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
                 self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
                 self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
-                self.lumped_mass_position[idx_symmetric, 2] =  self.lumped_mass_position[imass, 2] 
-                if self.ignore_lumped_masses_wing:
-                    self.lumped_mass_nodes[idx_symmetric] = self.lumped_mass_nodes[imass]
-                else:
-                    if self.lumped_mass_nodes[imass] == 0:
-                        self.lumped_mass_nodes[idx_symmetric] = 0
-                        # self.lumped_mass[idx_symmetric] = 0.
-                    else:
-                        self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
-    def set_lumped_mass_and_position(self, imass, mass, position, nodes):
-        self.lumped_mass[imass] =  mass
-        self.lumped_mass_position[imass, :] = position
-        self.lumped_mass_position[imass, 0] -= 0.24
-        pass
+                self.lumped_mass_position[idx_symmetric, 2] = self.lumped_mass_position[imass, 2] 
+
+                    
+    def set_lumped_mass_position_B_frame(self, imass, position, inode, mirrored = False):
+        """
+        This function converts the lumped mass position given in the G frame into the local coordinate of the linked structural node.
+
+        """
+        if mirrored:
+            position[1] *= 1
+        position[0] -= 0.24
+        self.lumped_mass_position[imass, 2] = position[2]
+        self.lumped_mass_position[imass, 0] = position[1] - self.y[inode]
+        self.lumped_mass_position[imass, 1] = position[0] - self.x[inode]
+        if self.y[inode] > self.y_coord_junction:
+            # local COS rotated around z-axis by beam sweep angle
+            self.lumped_mass_position[imass, 0] /=  np.cos(self.sweep_quarter_chord)
+            self.lumped_mass_position[imass, 1] -= self.lumped_mass_position[imass, 0] * np.sin(self.sweep_quarter_chord)
+            self.lumped_mass_position[imass, 1] *= np.cos(self.sweep_quarter_chord)
 
     def load_y_cross_sections(self):
         # Load data from file
