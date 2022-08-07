@@ -115,6 +115,8 @@ class FLEXOPStructure:
         self.wing_only = kwargs.get('wing_only', True)
         self.lifting_only = kwargs.get('lifting_only', True)
 
+        self.ignore_lumped_masses_wing = kwargs.get('ignore_lumped_masses_wing', False)
+
         self.n_stiffness_per_wing = n_stiffness_per_wing
         self.n_ailerons_per_wing = numb_ailerons
         self.n_elev_per_tail_surf = numb_elevators
@@ -153,19 +155,18 @@ class FLEXOPStructure:
         n_lumped_mass_wing = df_lumped_masses.shape[0]
         n_lumped_mass = n_lumped_mass_wing * 2
         if not self.wing_only:
-            n_lumped_mass += 4 #for payload, engine, fuel, system
+            n_lumped_mass += 2 #for payload, engine, fuel, system
         self.lumped_mass_nodes = np.zeros((n_lumped_mass, ), dtype=int)
         self.lumped_mass = np.zeros((n_lumped_mass, ))
         self.lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))
         self.lumped_mass_position = np.zeros((n_lumped_mass, 3))
-        x_lumped_mass = 0.606 - offset_wing_nose
-                # total number of elements
+        
+        # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
         if not self.wing_only:
             self.n_elem += self.n_elem_fuselage
             if tail:
                 self.n_elem += self.n_elem_tail + self.n_elem_tail
-
 
         # number of nodes per part
         self.n_node_main = self.n_elem_main*(self.n_node_elem - 1) + 1
@@ -190,7 +191,7 @@ class FLEXOPStructure:
             if not tail:
                 n_stiffness -= 1
                 n_mass -= 1
-        # TODO: Adjust for paper values (To I have to update j bar then)
+
         m_bar_fuselage = 0.3 * 10
         j_bar_fuselage = 0.08
 
@@ -227,10 +228,6 @@ class FLEXOPStructure:
             file = self.source_directory + '/dynamics_tailored.mat'
 
         matlab_data = load_mat(file)
-        matrices_cross_stiffness = matlab_data['dynamics']['str']['elm']['C'] * self.sigma
-        matrices_cross_mass = matlab_data['dynamics']['str']['elm']['A']
-        matrices_cross_moment_of_inertia = matlab_data['dynamics']['str']['elm']['I']
-        matrices_cross_first_moment = matlab_data['dynamics']['str']['elm']['Q']
         nodal_coordinates = matlab_data['dynamics']['str']['xyz']
         N_nodes = int(matlab_data['dynamics']['str']['Nnode'])
 
@@ -254,8 +251,6 @@ class FLEXOPStructure:
         n_node_root = int(3 + 2*(self.n_elem_root_main-1))
         self.y[wn + n_node_junctions:wn + n_node_junctions+n_node_root-1] = np.linspace(y_coord_junction, y_coord_ailerons[0], n_node_root)[1:]
         
-        
-        # Approach 1: Direct transition from one aileron to another aileron
         n_nodes_per_cs = (self.n_elem_per_aileron)*2+1
         wn_end = 0
         n_node_tip = int(3 + 2*(self.n_elem_tip_main-1))
@@ -269,7 +264,7 @@ class FLEXOPStructure:
         self.y[wn_end:wn_end + n_node_tip-1] = np.linspace(y_coord_ailerons[-1], self.span_main*0.5, n_node_tip)[1:]
         self.x[wn+n_node_junctions:wn + self.n_node_main] += (abs(self.y[wn+n_node_junctions:wn + self.n_node_main])-y_coord_junction) * np.tan(self.sweep_quarter_chord)
     
-        # Set stiffness, mass. For, and elastic axis (TODO: Change elastic axis to aero?)
+        # Set stiffness, mass. For, and elastic axis
         self.elem_stiffness[we:we + self.n_elem_main] = 0
         self.elem_mass[we:we + self.n_elem_main] = 0
         node_counter = wn
@@ -325,51 +320,12 @@ class FLEXOPStructure:
 
         self.conn[we, 0] = 0
         boundary_conditions[wn-1] = -1 # tip right wing
-
         we += self.n_elem_main
         wn += self.n_node_main - 1
-
         boundary_conditions[wn-1] = -1 # tip left wing
-        np.savetxt("elem_stiffness.csv", self.elem_stiffness)
-        # Set lumped masses wing
 
-        for imass in range(n_lumped_mass_wing):
-            self.lumped_mass[imass] = df_lumped_masses.iloc[imass, 1]
-            self.lumped_mass_position[imass, 0] = df_lumped_masses.iloc[imass, 2]
-            self.lumped_mass_position[imass, 0] -= (0.71-0.140615385) *chord_main_root # adjust x=0 at LE(is this correct?)
-            self.lumped_mass_position[imass, 1] = df_lumped_masses.iloc[imass, 3]
-            self.lumped_mass_position[imass, 2] = df_lumped_masses.iloc[imass, 4]
-            self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], self.lumped_mass_position[imass,1])
-        
-            # Copy to symmetric wing
-            idx_symmetric = n_lumped_mass_wing + imass
-            if self.lumped_mass_position[imass, 1] != 0.0:
-                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
-                self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
-                self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
-                self.lumped_mass_position[idx_symmetric, 2] =  self.lumped_mass_position[imass, 2] 
-                self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
-        np.savetxt("lumped_mass_position.csv", self.lumped_mass_position)
-        np.savetxt("lumped_mass_weight.csv", self.lumped_mass)
-        np.savetxt("lumped_mass_nodes.csv", self.lumped_mass_nodes)
-        np.savetxt("lumped_masses.csv", (self.lumped_mass_nodes, self.lumped_mass_position[:, 0], self.lumped_mass_position[:, 1], self.lumped_mass_position[:, 2], self.lumped_mass))
-        if not self.wing_only:
-            ###############
-            # fuselage
-            ###############
-             # lumped_mass fuel
-            # self.lumped_mass[-3] = 5. # kg
-            # self.lumped_mass_position[-3, 0] = 0.2
-            # self.lumped_mass_position[-3, 1] = 0
-            # self.lumped_mass_position[-3, 2] = 0
-            # self.lumped_mass_nodes[-3] = self.find_index_of_closest_entry(self.x[:self.n_node_fuselage], self.lumped_mass_position[-3, 0])
-
-            # lumped_mass[0] = 20 #mass_take_offself.n_node_main
-            # lumped_mass_position[0, 0] = self.x[wn + 4]
-            # lumped_mass_position[0, 1] = self.y[wn + 4]
-            # lumped_mass_position[0, 2] = self.z[wn + 4]
-            # lumped_mass_nodes[0] = wn + 4
             
+        if not self.wing_only:          
             # remember this is in B FoR
             self.beam_number[we:we + self.n_elem_fuselage] = 2
             x_fuselage = np.linspace(0.0, length_fuselage, self.n_node_fuselage) - offset_wing_nose
@@ -406,15 +362,6 @@ class FLEXOPStructure:
                     break
             boundary_conditions[wn] = - 1
 
-            # set_lumped_mass(mass, position, nodes)
-            # lumped_mass payload
-            self.lumped_mass[-1] = 42 - 10.799 #11.199 #40 #42. # kg
-            self.lumped_mass_position[-1, 0] = 0.15 #-0.7
-            self.lumped_mass_position[-1, 1] = 0
-            self.lumped_mass_position[-1, 2] = -0.525 #0
-            self.lumped_mass_nodes[-1] = wn +  self.find_index_of_closest_entry(self.x[wn:wn + self.n_node_fuselage], self.lumped_mass_position[-1,0])
-            self.x[wn:wn + self.n_node_fuselage]
-
             if tail:
                 self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
                 self.elem_mass[we:we + self.n_elem_fuselage] = n_mass - 2
@@ -435,7 +382,6 @@ class FLEXOPStructure:
                 wn_right_tail_start = wn
                 n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
                 self.y[wn:wn + n_node_junctions - 1] = np.linspace(0.0, y_coord_elevators[0], n_node_junctions)[1:]
-                # Approach 1: Direct transition from one aileron to another aileron
                 n_nodes_per_cs = (self.n_elem_per_elevator)*2+1
 
                 for i_control_surface in range(self.n_elev_per_tail_surf):
@@ -482,18 +428,35 @@ class FLEXOPStructure:
 
                 self.conn[we, 0] =  self.index_tail_start 
                 boundary_conditions[-1] = -1
-                print(self.x)
                 we += self.n_elem_tail
                 wn += self.n_node_tail - 1
 
+        # lumped masses 
+        self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
 
+        self.lumped_mass[-1] = 42 - 10.799 - 0.35833756498172# payload, kg
+        self.lumped_mass_position[-1, 0] = 0 
+        self.lumped_mass_position[-1, 1] = 0
+        self.lumped_mass_position[-1, 2] = -0.25
+        x_lm_payload = 0.2170 
+        if not self.wing_only:
+            # map payload to fuselage node
+            wn_fuselage_start = self.n_node_main  * 2- 1
+            self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
+            self.lumped_mass_position[-1, 0] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
+
+        else:
+            # map to wing junction node (Different local coordinate system)
+            self.lumped_mass_position[-1, 1] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
+            self.lumped_mass_nodes[-1] = 0
+        
         # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
         for i in  range(int(self.n_stiffness_per_wing * 2)):
-            stiffness[i, ...] = list_stiffness_matrix[i] #list_spanwise_stiffness_properties[i]
-            self.mass[i, ...] =  list_mass_matrix[i] #list_spanwise_mass_properties[i]
+            stiffness[i, ...] = list_stiffness_matrix[i] 
+            self.mass[i, ...] =  list_mass_matrix[i]
         for i in range(int(self.n_elem_main * 2)):
-            self.mass[i, ...] =  list_mass_matrix[i] #list_spanwise_mass_properties[i]
+            self.mass[i, ...] =  list_mass_matrix[i]
         if not self.wing_only:
             ea = 1e7
             ga = 1e5
@@ -510,9 +473,7 @@ class FLEXOPStructure:
             else:
                 stiffness[-1, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_fuselage
                 self.mass[-1, ...] = self.generate_mass_matrix(m_bar_fuselage, j_bar_fuselage)
-                # self.mass[-1, ...] = self.generate_mass_matrix(m_bar_tail, j_bar_tail)
-
-        np.savetxt("connectivities_script.csv", self.conn)
+                
         with h5.File(self.route + '/' + self.case_name + '.fem.h5', 'a') as h5file:
             h5file.create_dataset('coordinates', data=np.column_stack((self.x, self.y, self.z)))
             h5file.create_dataset('connectivities', data=self.conn)
@@ -533,8 +494,42 @@ class FLEXOPStructure:
             h5file.create_dataset('lumped_mass_inertia', data=self.lumped_mass_inertia)
             h5file.create_dataset('lumped_mass_position', data=self.lumped_mass_position)
 
-    def set_lumped_mass(self, mass, position, nodes):
-        pass
+    def place_lumped_masses_wing(self, df_lumped_masses, n_lumped_mass_wing):
+            for imass in range(n_lumped_mass_wing):                
+                self.lumped_mass[imass] =  df_lumped_masses.iloc[imass, 0]
+                self.lumped_mass_nodes[imass] = self.find_index_of_closest_entry(self.y[:self.n_node_main], 
+                                                                                 df_lumped_masses.iloc[imass,1])
+                self.set_lumped_mass_position_B_frame(imass,
+                                                      np.array(df_lumped_masses.iloc[imass, 1:4]),
+                                                      self.lumped_mass_nodes[imass])
+                # mirror lumped masses for left wing
+                idx_symmetric = n_lumped_mass_wing + imass
+                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]                 
+                if self.lumped_mass_nodes[imass] == 0:
+                    self.lumped_mass_nodes[idx_symmetric] = 0
+                else:
+                    self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
+                
+                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
+                self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
+                self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
+                self.lumped_mass_position[idx_symmetric, 2] = self.lumped_mass_position[imass, 2] 
+
+                    
+    def set_lumped_mass_position_B_frame(self, imass, position, inode):
+        """
+        This function converts the lumped mass position given in the G frame into the local coordinate of the linked structural node.
+
+        """
+        position[0] -= 0.22
+        self.lumped_mass_position[imass, 2] = position[2]
+        self.lumped_mass_position[imass, 0] = position[1] - self.y[inode]
+        self.lumped_mass_position[imass, 1] = position[0] - self.x[inode]
+        if self.y[inode] > self.y_coord_junction:
+            # local COS rotated around z-axis by beam sweep angle
+            self.lumped_mass_position[imass, 0] /=  np.cos(self.sweep_quarter_chord)
+            self.lumped_mass_position[imass, 1] -= self.lumped_mass_position[imass, 0] * np.sin(self.sweep_quarter_chord)
+            self.lumped_mass_position[imass, 1] *= np.cos(self.sweep_quarter_chord)
 
     def load_y_cross_sections(self):
         # Load data from file
@@ -602,10 +597,11 @@ class FLEXOPStructure:
             
             mass_matrix[3:,:3] = self.get_first_moment_matrix(0, 
                                                               matrices_cross_first_moment[row_counter,1], 
-                                                             0) # matrices_cross_first_moment[row_counter,0])
+                                                              - matrices_cross_first_moment[row_counter,0])
             list_Jy.append(matrices_cross_first_moment[row_counter,1])
             mass_matrix[:3,3:] = -mass_matrix[3:,:3]
             
+            # list_mass_matrix_data.append(np.diag(np.diagonal(mass_matrix)))
             list_mass_matrix_data.append(mass_matrix)
             counter += 6
             inertia_counter += 3
@@ -613,8 +609,6 @@ class FLEXOPStructure:
 
         # # left wing
         for i_material in range(self.n_stiffness_per_wing):
-            # TODO: Check modes
-            # Stiffness matrix
             stiffness_matrix = list_stiffness_matrix[i_material].copy()
             stiffness_matrix[2,3] *= -1
             stiffness_matrix[3,2] *= -1
@@ -628,17 +622,7 @@ class FLEXOPStructure:
             stiffness_matrix[0,5] *= -1
             stiffness_matrix[5,0] *= -1
 
-            # To be checked: Definitley not!
-            # stiffness_matrix[0,4] *= -1
-            # stiffness_matrix[4,0] *= -1
-
-            # Checked:Definitley not!
-            # stiffness_matrix[1,3] *= -1
-            # stiffness_matrix[3,1] *= -1
-
             list_stiffness_matrix.append(stiffness_matrix)
-
-
  
         for ielem in range(self.n_elem_main):
             mass_matrix = list_mass_matrix_data[self.elem_stiffness[ielem]].copy()
@@ -652,9 +636,7 @@ class FLEXOPStructure:
 
 
         for ielem in range(self.n_elem_main):
-            # Mass matrix
             mass_matrix = list_mass_matrix[ielem].copy()
-            # print(mass_matrix)
             # cg x component mirror in upper right partition
             mass_matrix[1, 5] *= -1
             mass_matrix[2, 4] *= -1
@@ -669,27 +651,11 @@ class FLEXOPStructure:
 
             # cg y component mirror in lower left partition
             mass_matrix[5, 0] *= -1
-            mass_matrix[3, 2] *= -1            
-            
-            # # cg z component mirror in upper right partition - definitely not (checked)
-            # mass_matrix[0, 4] *= -1
-            # mass_matrix[1, 3] *= -1
+            mass_matrix[3, 2] *= -1          
 
-            # # cg z component mirror in lower left partition -definitely not (checked)
-            # mass_matrix[4, 0] *= -1
-            # mass_matrix[3, 1] *= -1
-
-            # 45 - Iyz - not checked
+            # 45 - Iyz -
             mass_matrix[4, 5] *= -1
             mass_matrix[5, 4] *= -1
-
-            # # 34 - Ixy - zero anyway
-            # mass_matrix[4, 3] *= -1
-            # mass_matrix[3, 4] *= -1
-
-            # # 35 - Ixz  - zero anyway
-            # mass_matrix[3, 5] *= -1
-            # mass_matrix[5, 3] *= -1
 
             list_mass_matrix.append(mass_matrix)
 
@@ -713,7 +679,7 @@ class FLEXOPStructure:
 
     def read_lumped_masses(self):
         file = self.source_directory + '/lumped_masses.csv'
-        df = pd.read_csv(file, sep=';')
+        df = pd.read_csv(file, sep=';', header = None)
         return df
 
     def get_first_moment_matrix(self, Jx,Jy,Jz):
@@ -731,8 +697,6 @@ class FLEXOPStructure:
         Jy = J_matrix[0,2]
         chi_y = ((0.71 * chord) + J_matrix[0,2] / mass_elem) - c_n * chord
         Jy = chi_y * mass_elem
-        print("y, chi, c_n, chord, mass_elem, Jy_data, Jy_corrected= ", y, ", ", chi_y, ", " , c_n, ", ", chord, ", ", mass_elem, ", ", J_matrix[0, 2], ", ", Jy)
-        # Insert values into matrix
         J_matrix[0,2] = +Jy
         J_matrix[2,0] = -Jy
         return J_matrix
@@ -748,34 +712,60 @@ class FLEXOPStructure:
             length_elem = np.sqrt((self.x[start_node]-self.x[end_node])**2 
                                   + (self.y[start_node]-self.y[end_node])**2 
                                   +(self.z[start_node]-self.z[end_node])**2 )
-            distance = [(self.x[start_node] + self.x[end_node])/2,
-                        (self.y[start_node] + self.y[end_node])/2,
-                        (self.z[start_node] + self.z[end_node])/2]
-            print(distance)
+            distance = [self.x[self.conn[i_elem, -1]],
+                        self.y[self.conn[i_elem, -1]],
+                        self.z[self.conn[i_elem, -1]]]
             distributed_mass_elem = self.mass[self.elem_mass[i_elem], 0, 0]
             mass_elem = distributed_mass_elem * length_elem
             list_elem_mass.append(mass_elem)
+            
             for i_dim in range(3):
                 center_of_gravity[i_dim] += mass_elem * distance[i_dim]
         total_mass_structure = sum(list_elem_mass)
         
+        print("Total structural mass = ", total_mass_structure)
         for i_beam in set(self.beam_number):
             structural_mass_beam = sum(np.array(list_elem_mass)[self.beam_number == int(i_beam)])
             print("Total structural mass for beam {} is {} kg".format(i_beam, structural_mass_beam))
-        for i_mass in range(len(self.lumped_mass)):            
-            for i_dim in range(3):
-                center_of_gravity[i_dim] +=  self.lumped_mass[i_mass] * self.lumped_mass_position[i_mass, i_dim]
+        
+        # Get lumped masses
+
+        df_lumped_masses = self.read_lumped_masses()
+        n_lumped_masses_wing = df_lumped_masses.shape[0]
+        
+        for i_mass in range(len(self.lumped_mass)):      
+                  
+            if i_mass < n_lumped_masses_wing:
+                position_G_frame = np.array(df_lumped_masses.iloc[i_mass, 1:4])
+                position_G_frame[0] -= 0.24
+                center_of_gravity[:] += np.dot(self.lumped_mass[i_mass], position_G_frame)
+                # considered mirrored wing
+                position_G_frame[1] *= -1
+                center_of_gravity[:] += np.dot(self.lumped_mass[i_mass], position_G_frame)
+            elif i_mass < n_lumped_masses_wing * 2:
+                # Skip left wing as it contributions to the cg has been calculated before
+                pass
+            else:
+
+                print("imass {} with weight {}".format(i_mass, self.lumped_mass[i_mass]))
+                
+                if self.lumped_mass[i_mass] > 0:
+                    print("imass = ", i_mass)
+                    center_of_gravity[0] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 0] + self.x[self.lumped_mass_nodes[i_mass]])
+                    center_of_gravity[1] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 1] + self.y[self.lumped_mass_nodes[i_mass]])
+                    center_of_gravity[2] +=  self.lumped_mass[i_mass] * (self.lumped_mass_position[i_mass, 2] + self.z[self.lumped_mass_nodes[i_mass]])
+
         total_mass_lumped_masses = sum(self.lumped_mass)
         total_mass = total_mass_lumped_masses + total_mass_structure
         center_of_gravity /= total_mass
-        center_of_gravity[0] -= min(self.x)
+        
         print("x nose = ", min(self.x))
         print("x junction = ", self.x[0])
-        print("Total structural mass = ", total_mass_structure)
+        print("x tail = ", max(self.x))
         print("Total lumped masses ", sum(self.lumped_mass))
         print("Total mass aircraft = ", total_mass)
         print("Center of Gravity = ", center_of_gravity)
-        print("Center of Gravity - difference = ", center_of_gravity - [0.606, -0.1, -0.25])
+        print("Center of Gravity - difference = ", center_of_gravity - [0.606 + 0.8769 +   min(self.x), -0.1, -0.25])
 
     def read_spanwise_shear_center(self):
         reference_shear_center = 0.71 # given by Jurij
