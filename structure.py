@@ -113,7 +113,10 @@ class FLEXOPStructure:
         self.y_coord_junction = y_coord_junction # Radius fuselage at wing
 
         self.wing_only = kwargs.get('wing_only', True)
-        self.lifting_only = kwargs.get('lifting_only', True)
+        self.tail = not self.wing_only
+        self.lifting_only = self.wing_only
+
+        self.symmetry_condition = True #False #True #kwargs.get('symmetry_condition', False)
 
         self.ignore_lumped_masses_wing = kwargs.get('ignore_lumped_masses_wing', False)
 
@@ -129,9 +132,7 @@ class FLEXOPStructure:
     def set_thrust(self, value):
         self.thrust = value
 
-    def generate(self):
-        # Set Elements
-        self.tail = not self.wing_only
+    def set_elem_and_node_numbers(self):        
         self.n_elem_junction_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_junction_main < 1:
             self.n_elem_junction_main = 1
@@ -146,27 +147,13 @@ class FLEXOPStructure:
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
         self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
- 
-        if self.wing_only:
-            self.lifting_only = True
 
-        # lumped masses
-        df_lumped_masses = self.read_lumped_masses()
-        n_lumped_mass_wing = df_lumped_masses.shape[0]
-        n_lumped_mass = n_lumped_mass_wing * 2
-        if not self.wing_only:
-            n_lumped_mass += 2 #for payload, engine, fuel, system
-        self.lumped_mass_nodes = np.zeros((n_lumped_mass, ), dtype=int)
-        self.lumped_mass = np.zeros((n_lumped_mass, ))
-        self.lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))
-        self.lumped_mass_position = np.zeros((n_lumped_mass, 3))
-        
         # total number of elements
-        self.n_elem = self.n_elem_main + self.n_elem_main
+        self.n_elem = self.n_elem_main + self.n_elem_main * int(not self.symmetry_condition)
         if not self.wing_only:
             self.n_elem += self.n_elem_fuselage
             if self.tail:
-                self.n_elem += self.n_elem_tail + self.n_elem_tail
+                self.n_elem += self.n_elem_tail + self.n_elem_tail * int(not self.symmetry_condition)
 
         # number of nodes per part
         self.n_node_main = self.n_elem_main*(self.n_node_elem - 1) + 1
@@ -174,17 +161,35 @@ class FLEXOPStructure:
         self.n_node_fuselage = (self.n_elem_fuselage+1)*(self.n_node_elem - 1) -1
 
         # total number of nodes
-        self.n_node = self.n_node_main + self.n_node_main - 1
+        self.n_node = self.n_node_main + (self.n_node_main - 1) * int(not self.symmetry_condition)
         if not self.wing_only:
             self.n_node += self.n_node_fuselage - 1
             if self.tail:
                 self.n_node += self.n_node_tail - 1
-                self.n_node += self.n_node_tail - 1
+                if not self.symmetry_condition:
+                    self.n_node += self.n_node_tail - 1
 
+    def init_lumped_masses(self):
+        # lumped masses
+        self.df_lumped_masses = self.read_lumped_masses()
+        self.n_lumped_mass_wing = self.df_lumped_masses.shape[0]
+        self.n_lumped_mass = self.n_lumped_mass_wing
+        if not self.symmetry_condition:
+            self.n_lumped_mass *= 2
+        if not self.wing_only:
+            self.n_lumped_mass += 2 #for payload, engine, fuel, system
+        self.lumped_mass_nodes = np.zeros((self.n_lumped_mass, ), dtype=int)
+        self.lumped_mass = np.zeros((self.n_lumped_mass, ))
+        self.lumped_mass_inertia = np.zeros((self.n_lumped_mass, 3, 3))
+        self.lumped_mass_position = np.zeros((self.n_lumped_mass, 3))
 
+    def init_aeroelastic_properties(self):
         # Aeroelastic properties
-        self.n_stiffness = self.n_stiffness_per_wing * 2
-        self.n_mass = self.n_elem_main * 2
+        self.n_stiffness = self.n_stiffness_per_wing 
+        self.n_mass = self.n_elem_main 
+        if not self.symmetry_condition:
+            self.n_stiffness *= 2
+            self.n_mass *= 2
         if not self.wing_only:
             self.n_stiffness += 2
             self.n_mass += 2
@@ -192,13 +197,16 @@ class FLEXOPStructure:
                 self.n_stiffness -= 1
                 self.n_mass -= 1
 
-        m_bar_fuselage = 0.3 * 10
-        j_bar_fuselage = 0.08
+    def generate(self):
+        self.set_elem_and_node_numbers()
+        self.init_lumped_masses()      
+        self.init_aeroelastic_properties()
 
-        sigma_tail = 100
-        m_bar_tail = 0.3 * 4
-        j_bar_tail = 0.08
-
+        print("\nn nodes wing = ", self.n_node_main)
+        print("\nn nodes tail = ", self.n_node_tail)
+        print("\nn nodes fuselage = ", self.n_node_fuselage)
+        print("\nN nodes total = ", self.n_node)
+        print("\nN elems total = ", self.n_elem)
         # beam
         self.x = np.zeros((self.n_node, ))
         self.y = np.zeros((self.n_node, ))
@@ -217,23 +225,6 @@ class FLEXOPStructure:
 
         self.list_spanwise_shear_center = self.read_spanwise_shear_center()
         self.y_cross_sections = self.load_y_cross_sections()
-        # Load data from file
-        if self.material == "reference":
-            file = self.source_directory + '/dynamics_reference.mat'
-        else:
-            file = self.source_directory + '/dynamics_tailored.mat'
-
-        matlab_data = load_mat(file)
-        nodal_coordinates = matlab_data['dynamics']['str']['xyz']
-        N_nodes = int(matlab_data['dynamics']['str']['Nnode'])
-
-        # Transform data
-        coords = np.zeros((N_nodes, 3))
-        counter = 0
-        for irow in range(N_nodes):
-            # skip first row
-            coords[irow, :] = np.transpose(nodal_coordinates[counter:counter+3])
-            counter += 3
 
         ###############
         # right wing
@@ -248,15 +239,17 @@ class FLEXOPStructure:
 
         we += self.n_elem_main
         wn += self.n_node_main
-
-        self.set_left_wing_beam(we, wn)
         self.boundary_conditions[wn-1] = -1 # tip right wing
-        we += self.n_elem_main
-        wn += self.n_node_main - 1
-        self.boundary_conditions[wn-1] = -1 # tip left wing
+
+        if not self.symmetry_condition:
+            self.set_left_wing_beam(we, wn)
+            we += self.n_elem_main
+            wn += self.n_node_main - 1
+            self.boundary_conditions[wn-1] = -1 # tip left wing
 
             
-        if not self.wing_only:          
+        if not self.wing_only:
+            self.wn_fuselage_start = wn  
             self.set_fuselage_beam(we, wn)
             self.boundary_conditions[wn] = - 1
 
@@ -278,9 +271,10 @@ class FLEXOPStructure:
                 wn += self.n_node_tail - 1
                 self.boundary_conditions[wn -1] = - 1#+ self.n_node_tail - 2] = -1
                 
-                self.set_left_tail_beam(we, wn)
+                if not self.symmetry_condition:
+                    self.set_left_tail_beam(we, wn)
 
-                self.boundary_conditions[-1] = -1
+                    self.boundary_conditions[-1] = -1
                 we += self.n_elem_tail
                 wn += self.n_node_tail - 1
 
@@ -290,7 +284,7 @@ class FLEXOPStructure:
         self.structural_twist = structural_twist
 
 
-        self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
+        self.place_lumped_masses_wing(self.df_lumped_masses, self.n_lumped_mass_wing)
         self.set_payload()
         self.set_stiffness_and_masses()
 
@@ -415,7 +409,10 @@ class FLEXOPStructure:
         self.conn[we, 0] =  self.index_tail_start 
 
     def set_right_tail_beam(self, we, wn):
-        self.beam_number[we:we + self.n_elem_tail] = 3
+        beam_id = 3
+        if self.symmetry_condition:
+            beam_id -= 1
+        self.beam_number[we:we + self.n_elem_tail] = beam_id
         self.x[wn:wn + self.n_node_tail - 1] = self.x[self.index_tail_start]
         wn_right_tail_start = wn
         n_node_junctions = int(3 + 2*(self.n_elem_junction_tail-1))
@@ -450,17 +447,20 @@ class FLEXOPStructure:
             self.lumped_mass_position[-1, 1] = 0
             self.lumped_mass_position[-1, 2] = 0
             x_lm_payload = 0.2170 
-            wn_fuselage_start = self.n_node_main  * 2- 1
-            self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
+            # wn_fuselage_start = self.n_node_main  * 2- 1
+            self.lumped_mass_nodes[-1] = self.wn_fuselage_start +  self.find_index_of_closest_entry(self.x[self.wn_fuselage_start:self.wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
             self.lumped_mass_position[-1, 0] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
 
     def set_stiffness_and_masses(self):
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
-        for i in  range(int(self.n_stiffness_per_wing * 2)):
+        n_stiffness_wings =self.n_stiffness_per_wing 
+        if not self.symmetry_condition:
+            n_stiffness_wings *= 2
+        for i in  range(n_stiffness_wings):
             self.stiffness[i, ...] = list_stiffness_matrix[i] 
             self.mass[i, ...] =  list_mass_matrix[i]
-        for i in range(int(self.n_elem_main * 2)):
-            self.mass[i, ...] =  list_mass_matrix[i]
+        # for i in range(int(self.n_elem_main * 2)):
+        #     self.mass[i, ...] =  list_mass_matrix[i]
         if not self.wing_only:
             ea = 1e7
             ga = 1e5
@@ -508,9 +508,10 @@ class FLEXOPStructure:
                                                       np.array(df_lumped_masses.iloc[imass, 1:4]),
                                                       self.lumped_mass_nodes[imass])
                 # mirror lumped masses for left wing
-                idx_symmetric = n_lumped_mass_wing + imass
-                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]                 
-                if self.lumped_mass_nodes[imass] == 0:
+                if not self.symmetry_condition:
+                    idx_symmetric = n_lumped_mass_wing + imass
+                    self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]                 
+                    if self.lumped_mass_nodes[imass] == 0:
                     self.lumped_mass_nodes[idx_symmetric] = 0
                 else:
                     self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
