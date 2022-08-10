@@ -116,7 +116,7 @@ class FLEXOPStructure:
         self.tail = not self.wing_only
         self.lifting_only = self.wing_only
 
-        self.symmetry_condition = True #False #True #kwargs.get('symmetry_condition', False)
+        self.symmetry_condition = kwargs.get('symmetry_condition', False)
 
         self.ignore_lumped_masses_wing = kwargs.get('ignore_lumped_masses_wing', False)
 
