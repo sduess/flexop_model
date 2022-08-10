@@ -315,7 +315,6 @@ class FLEXOPAero:
             self.aero_node[wn:wn + self.n_node_main] = self.structure.y[wn:wn + self.n_node_main] <= -y_coord_junction
 
         self.junction_boundary_condition_aero[0, i_surf] = 0 # BC at fuselage junction
-        temp_chord = temp_chord
         node_counter = 0
         for i_elem in range(we, we + self.n_elem_main):
             for i_local_node in range(self.n_node_elem): 

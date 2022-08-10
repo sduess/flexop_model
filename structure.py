@@ -263,7 +263,7 @@ class FLEXOPStructure:
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1
             self.boundary_conditions[wn - 1] = -1
-            self.boundary_conditions[self.index_tail_start] = 0
+            
             if self.tail:
                 self.set_right_tail_beam(we, wn)
 
