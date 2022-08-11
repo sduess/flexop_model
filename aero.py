@@ -406,21 +406,10 @@ class FLEXOPAero:
         node_counter = 0
         for i_elem in range(we, we + self.n_elem_tail):
             for i_local_node in range(self.n_node_elem):
-                self.twist[i_elem, i_local_node] = -0
-        for i_elem in range(we, we + self.n_elem_tail):
-            for i_local_node in range(self.n_node_elem):
-                if not i_local_node == 0:
-                    node_counter += 1
-                if i_local_node == 1:
-                    self.chord[i_elem, i_local_node] = temp_chord[node_counter + 1]
-                elif i_local_node == 2:
-                    self.chord[i_elem, i_local_node] = temp_chord[node_counter - 1]
-                else:
-                    self.chord[i_elem, i_local_node] = temp_chord[node_counter]            
+                self.twist[i_elem, i_local_node] = -0     
                 self.elastic_axis[i_elem, i_local_node] = ea_main
+                self.chord[i_elem, i_local_node] = self.chord[i_elem-self.n_elem_tail, i_local_node]
 
-        # For control surfaces setup
-        node_counter = wn - 2
         for i_elem in range(we, we + self.n_elem_tail):
             if self.control_surface[i_elem - self.n_elem_tail, 0] > -1:
                 self.control_surface[i_elem, :] = self.control_surface[i_elem - self.n_elem_tail, :] #+ self.n_cs_right
