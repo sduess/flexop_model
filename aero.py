@@ -371,17 +371,17 @@ class FLEXOPAero:
         node_counter = wn - 2
         cs_counter = -1
         
-            cs_surface = False
-            for i_elem in range(we, we + self.n_elem_tail):
-                for i_local_node in range(3):
-                    if not i_local_node == 0:
-                        node_counter += 1
-                    if abs(self.structure.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
-                        cs_surface = True 
-                    if cs_surface:
-                        if abs(self.structure.y[node_counter]) in y_coord_elevators:
-                            if i_local_node == 0:
-                                if cs_counter == -1:
+        cs_surface = False
+        for i_elem in range(we, we + self.n_elem_tail):
+            for i_local_node in range(3):
+                if not i_local_node == 0:
+                    node_counter += 1
+                if abs(self.structure.y[node_counter]) == y_coord_elevators[0] and i_local_node == 0:
+                    cs_surface = True 
+                if cs_surface:
+                    if abs(self.structure.y[node_counter]) in y_coord_elevators:
+                        if i_local_node == 0:
+                            if cs_counter == -1:
                                 cs_counter = 4
                             else:
                                 cs_counter += 1
