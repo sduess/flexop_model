@@ -275,8 +275,8 @@ class FLEXOPStructure:
                     self.set_left_tail_beam(we, wn)
 
                     self.boundary_conditions[-1] = -1
-                we += self.n_elem_tail
-                wn += self.n_node_tail - 1
+                    we += self.n_elem_tail
+                    wn += self.n_node_tail - 1
 
         
         # TODO: preliminary solution, change in code directly
