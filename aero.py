@@ -129,30 +129,25 @@ class FLEXOPAero:
         control_surface_type = np.zeros((n_control_surfaces, ), dtype=int)
         control_surface_deflection = np.zeros((n_control_surfaces, ))
         control_surface_chord = np.zeros((n_control_surfaces, ), dtype=int)
-        control_surface_hinge_coord = np.zeros((n_control_surfaces, ), dtype=float)
         # aileron 1 right
         control_surface_type[0] = 0
         control_surface_deflection[0] =  0
         control_surface_chord[0] = self.m/4 # 0.25
-        control_surface_hinge_coord[0] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
 
         # aileron 2 right
         control_surface_type[1] = 0
         control_surface_deflection[1] = 0 
         control_surface_chord[1] = self.m/4 # 0.25
-        control_surface_hinge_coord[1] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
 
         # aileron 3 right
         control_surface_type[2] = 0
         control_surface_deflection[2] =  0
         control_surface_chord[2] = self.m/4 # 0.25
-        control_surface_hinge_coord[2] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
         
         # aileron 4 right
         control_surface_type[3] = 0
         control_surface_deflection[3] =  np.deg2rad(0)
         control_surface_chord[3] = self.m/4 # 0.25
-        control_surface_hinge_coord[3] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
         # TODO: Setup right elevator chord length
         if self.controllable:
             control_surface_type[:4] = 1
@@ -161,16 +156,11 @@ class FLEXOPAero:
             control_surface_type[4]  = 0
             control_surface_deflection[4]  = np.deg2rad(self.cs_deflection)
             control_surface_chord[4]  =  self.m/2 # Flexop's elevator cs have a ,chord of 36%. problems with aerogrid discretization
-            control_surface_hinge_coord[4]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
             # # rudder 2
             control_surface_type[5]  = 0
             control_surface_deflection[5]  = np.deg2rad(self.cs_deflection)# np.deg2rad(self.cs_deflection)
             control_surface_chord[5]  = self.m/2  # Flexop@s elevator cs have a ,chord of 36%. problems with aerogrid discretization
-            control_surface_hinge_coord[5]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
        
-        # list_cs_deflection_test = [-45, 45, -60, 60, -30, 30]
-        # for i in range(int(n_control_surfaces/2)):
-        #     control_surface_deflection[i] = np.deg2rad(list_cs_deflection_test[i])
         if not self.structure.symmetry_condition:
             self.n_cs_right = int(n_control_surfaces/2)
             for i_cs_right in range(self.n_cs_right):
@@ -178,7 +168,6 @@ class FLEXOPAero:
                 control_surface_deflection[i_cs_left] = control_surface_deflection[i_cs_right] 
                 control_surface_type[i_cs_left] = control_surface_type[i_cs_right] 
                 control_surface_chord[i_cs_left] = control_surface_chord[i_cs_right] 
-                control_surface_hinge_coord[i_cs_left] = control_surface_hinge_coord[i_cs_right] 
         ###############
         # right wing
         ###############
@@ -242,7 +231,6 @@ class FLEXOPAero:
             h5file.create_dataset('control_surface', data=self.control_surface)
             h5file.create_dataset('control_surface_deflection', data=control_surface_deflection)
             h5file.create_dataset('control_surface_chord', data=control_surface_chord)
-            h5file.create_dataset('control_surface_hinge_coord', data=control_surface_hinge_coord)
             h5file.create_dataset('control_surface_type', data=control_surface_type)
 
             if self.polars is not None:
