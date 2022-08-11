@@ -191,8 +191,8 @@ class FLEXOPAero:
             we += self.n_elem_tail
             wn += self.n_node_tail
             
-            if self.structure.symmetry_condition:
-                self.set_left_tail
+            if not self.structure.symmetry_condition:
+                self.set_left_tail(we, wn)
                 we += self.n_elem_tail
                 wn += self.n_node_tail
 
