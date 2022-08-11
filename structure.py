@@ -512,14 +512,14 @@ class FLEXOPStructure:
                     idx_symmetric = n_lumped_mass_wing + imass
                     self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]                 
                     if self.lumped_mass_nodes[imass] == 0:
-                    self.lumped_mass_nodes[idx_symmetric] = 0
-                else:
-                    self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
-                
-                self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
-                self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
-                self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
-                self.lumped_mass_position[idx_symmetric, 2] = self.lumped_mass_position[imass, 2] 
+                        self.lumped_mass_nodes[idx_symmetric] = 0
+                    else:
+                        self.lumped_mass_nodes[idx_symmetric] = self.n_node_main - 1 + self.lumped_mass_nodes[imass]
+                    
+                    self.lumped_mass[idx_symmetric] =  self.lumped_mass[imass]
+                    self.lumped_mass_position[idx_symmetric, 0] = self.lumped_mass_position[imass, 0]
+                    self.lumped_mass_position[idx_symmetric, 1] = -self.lumped_mass_position[imass, 1]
+                    self.lumped_mass_position[idx_symmetric, 2] = self.lumped_mass_position[imass, 2] 
 
                     
     def set_lumped_mass_position_B_frame(self, imass, position, inode):
