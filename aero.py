@@ -287,6 +287,7 @@ class FLEXOPAero:
             ###############
             # Fuselage
             ###############
+            aero_node[wn:wn+self.n_node_fuselage - 2] = False
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1 - 1
             #
@@ -304,7 +305,7 @@ class FLEXOPAero:
 
             if self.lifting_only:
                 aero_node[self.structure.index_tail_start] = True
-                aero_node[wn:wn + self.n_node_tail] = True
+                aero_node[wn+1:wn + self.n_node_tail] = True
             else:
                 aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04
             junction_boundary_condition_aero[0, i_surf] = 3 # BC at fuselage junction
