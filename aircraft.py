@@ -39,13 +39,11 @@ class FLEXOP:
     def init_fuselage(self, m, **kwargs):
         self.fuselage = FLEXOPFuselage(m, self.structure, self.case_name, self.case_route, self.source_directory, **kwargs)
 
-    def set_flight_controls(self, thrust=0., elevator=0., rudder=0.):
+    def set_flight_controls(self, thrust=0., elevator=0.):
         self.structure.set_thrust(thrust)
 
         if self.aero is not None:
             self.aero.cs_deflection = elevator
-            self.aero.rudder_deflection = rudder
-
     @property
     def reference_area(self):
         return area_ref
