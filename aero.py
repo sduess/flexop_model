@@ -61,7 +61,6 @@ class FLEXOPAero:
         
         Key-Word Arguments:
             - cs_deflection (float): Elevator control surface deflection
-            - rudder_deflection (float): rudder deflection
             - polars (list(np.array)): 4-column array for AoA (rad), Cl, Cd, Cm of each airfoil polar
         """
         self.m = m
@@ -71,7 +70,6 @@ class FLEXOPAero:
         self.case_name = case_name
 
         self.cs_deflection = kwargs.get('cs_deflection', 0.)
-        self.rudder_deflection = kwargs.get('rudder_deflection', 0.)
 
         self.chord_main_root = chord_main_root
         self.chord_tail_root = chord_tail_root        
