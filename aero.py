@@ -88,7 +88,7 @@ class FLEXOPAero:
         self.source_directory = source_directory
 
     def generate(self):
-        tail = not self.wing_only
+        tail = not self.wing_only and self.lifting_only
         n_surfaces = 2
         if not self.wing_only:
             n_surfaces += 2
@@ -285,7 +285,7 @@ class FLEXOPAero:
             
         we += self.n_elem_main
         wn += self.n_node_main - 1
-        if not self.wing_only and tail:
+        if self.structure.tail:
             ###############
             # Fuselage
             ###############
