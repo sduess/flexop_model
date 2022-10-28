@@ -19,6 +19,9 @@ class FLEXOPFuselage:
         self.n_nonlifting_bodies = n_nonlifting_bodies
         self.source_directory = source_directory
 
+        self.fuselage_shape = kwargs.get('fuselage_shape', 'specific')
+        assert self.fuselage_shape in ['cylindrical', 'specific'], 'Fuselage shape {} not supported'.format(self.fuselage_shape)
+
     def generate(self): 
 
         structure = self.structure
@@ -37,11 +40,10 @@ class FLEXOPFuselage:
         nonlifting_body_node = np.zeros((self.n_node,), dtype=bool)
         nonlifting_body_distribution = np.zeros((self.n_elem,), dtype=int) - 1
         nonlifting_body_m = np.zeros((self.n_nonlifting_bodies, ), dtype=int)
-        radius = np.zeros((self.n_node,))
         a_ellipse = np.zeros((self.n_node,))
         b_ellipse = np.zeros((self.n_node,))
         z_0_ellipse = np.zeros((self.n_node,))
-        radius = np.zeros((self.n_node,))
+        self.radius = np.zeros((self.n_node,))
         we = 0
         wn = 0
 
@@ -67,21 +69,27 @@ class FLEXOPFuselage:
         x_coord_fuselage = np.sort(self.structure.x[nonlifting_body_node])
         idx_junction = self.find_index_of_closest_entry(x_coord_fuselage, self.structure.x[0])
         x_coord_fuselage += abs(min(x_coord_fuselage))
-        a_ellipse_tmp, b_ellipse_tmp, z_0_ellipse_tmp = self.generate_fuselage_geometry(x_coord_fuselage)
-        a_ellipse[0] = a_ellipse_tmp[idx_junction]
-        b_ellipse[0] = b_ellipse_tmp[idx_junction]
-        z_0_ellipse[0] = z_0_ellipse_tmp[idx_junction]
 
 
-        a_ellipse_tmp= np.delete(a_ellipse_tmp,idx_junction)
-        b_ellipse_tmp= np.delete(b_ellipse_tmp,idx_junction)
-        z_0_ellipse_tmp= np.delete(z_0_ellipse_tmp,idx_junction)
-        a_ellipse[wn:wn + self.n_node_fuselage-1] =  a_ellipse_tmp
-        b_ellipse[wn:wn + self.n_node_fuselage-1] =  b_ellipse_tmp
-        z_0_ellipse[wn:wn + self.n_node_fuselage-1] =  z_0_ellipse_tmp
+        if self.fuselage_shape == 'cylindrical':
+            self.length_fuselage = self.structure.x[wn+self.structure.n_node_fuselage-2] - self.structure.x[wn]
+            self.radius[wn:wn + self.structure.n_node_fuselage-1] = self.cylindrical_fuselage(x_coord_fuselage, idx_junction)
+        else:
+            a_ellipse_tmp, b_ellipse_tmp, z_0_ellipse_tmp = self.generate_fuselage_geometry(x_coord_fuselage)
+            a_ellipse[0] = a_ellipse_tmp[idx_junction]
+            b_ellipse[0] = b_ellipse_tmp[idx_junction]
+            z_0_ellipse[0] = z_0_ellipse_tmp[idx_junction]
+
+
+            a_ellipse_tmp= np.delete(a_ellipse_tmp,idx_junction)
+            b_ellipse_tmp= np.delete(b_ellipse_tmp,idx_junction)
+            z_0_ellipse_tmp= np.delete(z_0_ellipse_tmp,idx_junction)
+            a_ellipse[wn:wn + self.n_node_fuselage-1] =  a_ellipse_tmp
+            b_ellipse[wn:wn + self.n_node_fuselage-1] =  b_ellipse_tmp
+            z_0_ellipse[wn:wn + self.n_node_fuselage-1] =  z_0_ellipse_tmp
         
         with h5.File(self.route + '/' + self.case_name + '.nonlifting_body.h5', 'a') as h5file:
-            h5file.create_dataset('shape', data='specific')
+            h5file.create_dataset('shape', data=self.fuselage_shape)
             h5file.create_dataset('a_ellipse', data=a_ellipse)
             h5file.create_dataset('b_ellipse', data=b_ellipse)
             h5file.create_dataset('z_0_ellipse', data=z_0_ellipse)
@@ -91,12 +99,63 @@ class FLEXOPFuselage:
             h5file.create_dataset('surface_distribution', data=nonlifting_body_distribution)
             
             # radius
-            radius_input = h5file.create_dataset('radius', data=radius)
+            radius_input = h5file.create_dataset('radius', data=self.radius)
             radius_input.attrs['units'] = 'm'
 
     def find_index_of_closest_entry(self, array_values, target_value):
         return np.argmin(np.abs(array_values - target_value))
 
+    def cylindrical_fuselage(self, x_coord_fuselage, idx_junction):
+        radius_fuselage = self.create_fuselage_geometry(x_coord_fuselage, 
+                                                        self.structure.y_coord_junction, 
+                                                        0.2*self.length_fuselage, 
+                                                        0.8*self.length_fuselage)
+
+        self.radius[0] = max(radius_fuselage)
+        radius_fuselage = np.delete(radius_fuselage,idx_junction)
+        print(self.radius[0])
+        return radius_fuselage
+    def add_nose_or_tail_shape(self, idx, array_x, x_transition, radius_fuselage, nose = True):
+        if nose:
+            x_nose = np.append(array_x[:idx],x_transition)
+            shape = self.create_ellipsoid(x_nose, x_nose[-1] - x_nose[0], radius_fuselage, True)
+            shape = shape[:-1]
+        if not nose:
+            #TO-DO: Add paraboloid shaped tail
+            x_tail = np.insert(array_x[idx:],0,x_transition)
+            shape = self.create_ellipsoid(x_tail, x_tail[-1]-x_tail[0], radius_fuselage, False)
+            shape = shape[1:]
+        return shape
+    def create_ellipsoid(self, x_geom, a, b, flip):
+        len_initial = len(x_geom)
+        x_geom -= x_geom.max()
+        if not flip:
+            x_geom = np.flip(x_geom)
+        np.append(x_geom,np.flip(-x_geom))
+        y = b*np.sqrt(1-(x_geom/a)**2)
+        if not flip:
+            return y[:len_initial]
+        else:
+            return y[:len_initial]
+
+    def create_fuselage_geometry(self, x_coord_fuselage, radius_fuselage, x_nose_end, x_tail_start):
+        array_radius = np.zeros((self.structure.n_node_fuselage))
+        idx_cylinder_start = self.structure.find_index_of_closest_entry(x_coord_fuselage, x_nose_end)
+
+        idx_cylinder_end = self.structure.find_index_of_closest_entry(x_coord_fuselage, x_tail_start)
+ 
+        # set constant radius of cylinder
+        array_radius[idx_cylinder_start:idx_cylinder_end] = radius_fuselage
+        # set r(x) for nose and tail region
+        array_radius[:idx_cylinder_start] = self.add_nose_or_tail_shape(idx_cylinder_start, x_coord_fuselage, x_nose_end, radius_fuselage, nose = True)
+
+        array_radius[idx_cylinder_end:] = self.add_nose_or_tail_shape(idx_cylinder_end, x_coord_fuselage, x_tail_start, radius_fuselage, nose = False)
+        if array_radius[0] != 0.0:
+            array_radius[1:idx_cylinder_start+1] = array_radius[:idx_cylinder_start]
+            array_radius[0] = 0.0
+        if array_radius[-2] == 0.0:
+            array_radius[idx_cylinder_end:] =  array_radius[idx_cylinder_end-1:-1]
+        return array_radius 
     def generate_fuselage_geometry(self, x_coord_fuselage):
         df_fuselage = pd.read_csv(self.source_directory + '/fuselage_geometry.csv', sep=";")
         y_coord_fuselage = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'y', True)
