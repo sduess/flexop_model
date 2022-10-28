@@ -132,7 +132,7 @@ class FLEXOPStructure:
     def generate(self):
         # Set Elements
         
-        self.tail = not self.wing_only and self.lifting_only
+        self.tail = not self.wing_only
         self.n_elem_junction_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_junction_main < 1:
             self.n_elem_junction_main = 1
@@ -173,7 +173,7 @@ class FLEXOPStructure:
 
         # total number of nodes
         self.n_node = self.n_node_main + self.n_node_main - 1
-        if not self.wing_only:
+        if not self.lifting_only:
             self.n_node += self.n_node_fuselage - 1
             if self.tail:
                 self.n_node += self.n_node_tail - 1
@@ -183,12 +183,12 @@ class FLEXOPStructure:
         # Aeroelastic properties
         n_stiffness = self.n_stiffness_per_wing * 2
         n_mass = self.n_elem_main * 2
-        if not self.wing_only:
-            n_stiffness += 2
-            n_mass += 2
-            if not self.tail:
-                n_stiffness -= 1
-                n_mass -= 1
+        if not self.lifting_only:
+            n_stiffness += 1
+            n_mass += 1
+        if self.tail:
+            n_stiffness += 1
+            n_mass += 1
 
         m_bar_fuselage = 0.3 * 10
         j_bar_fuselage = 0.08
@@ -323,7 +323,7 @@ class FLEXOPStructure:
         boundary_conditions[wn-1] = -1 # tip left wing
 
             
-        if not self.lifting_only:          
+        if not self.lifting_only or self.tail:   
             # remember this is in B FoR
             self.beam_number[we:we + self.n_elem_fuselage] = 2
             x_fuselage = np.linspace(0.0, length_fuselage, self.n_node_fuselage) - offset_wing_nose
@@ -457,7 +457,7 @@ class FLEXOPStructure:
             self.mass[i, ...] =  list_mass_matrix[i]
         for i in range(int(self.n_elem_main * 2)):
             self.mass[i, ...] =  list_mass_matrix[i]
-        if not self.wing_only:
+        if not self.lifting_only or self.tail:
             ea = 1e7
             ga = 1e5
             gj = 1e4
