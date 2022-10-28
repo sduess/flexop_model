@@ -86,7 +86,7 @@ class FLEXOPAero:
         self.source_directory = source_directory
 
     def generate(self):
-        tail = not self.wing_only
+        tail = not self.wing_only and self.lifting_only
         n_surfaces = 2
         if not self.wing_only:
             n_surfaces += 2
@@ -120,9 +120,9 @@ class FLEXOPAero:
         ###############
         # Control Surfaces
         ###############
-        n_control_surfaces = 4 #*2
+        n_control_surfaces = 4*2
         if not self.wing_only:
-            n_control_surfaces += 2#*2 # on each side
+            n_control_surfaces += 2*2# on each side
         control_surface = np.zeros((self.n_elem, self.n_node_elem), dtype=int) - 1
         control_surface_type = np.zeros((n_control_surfaces, ), dtype=int)
         control_surface_deflection = np.zeros((n_control_surfaces, ))
@@ -167,13 +167,13 @@ class FLEXOPAero:
         # list_cs_deflection_test = [-45, 45, -60, 60, -30, 30]
         # for i in range(int(n_control_surfaces/2)):
         #     control_surface_deflection[i] = np.deg2rad(list_cs_deflection_test[i])
-        # n_cs_right = int(n_control_surfaces/2)
-        # for i_cs_right in range(n_cs_right):
-        #     i_cs_left = n_cs_right + i_cs_right
-        #     control_surface_deflection[i_cs_left] = control_surface_deflection[i_cs_right] 
-        #     control_surface_type[i_cs_left] = control_surface_type[i_cs_right] 
-        #     control_surface_chord[i_cs_left] = control_surface_chord[i_cs_right] 
-        #     control_surface_hinge_coord[i_cs_left] = control_surface_hinge_coord[i_cs_right] 
+        n_cs_right = int(n_control_surfaces/2)
+        for i_cs_right in range(n_cs_right):
+            i_cs_left = n_cs_right + i_cs_right
+            control_surface_deflection[i_cs_left] = control_surface_deflection[i_cs_right] 
+            control_surface_type[i_cs_left] = control_surface_type[i_cs_right] 
+            control_surface_chord[i_cs_left] = control_surface_chord[i_cs_right] 
+            control_surface_hinge_coord[i_cs_left] = control_surface_hinge_coord[i_cs_right] 
         ###############
         # right wing
         ###############
@@ -277,13 +277,13 @@ class FLEXOPAero:
                     if abs(self.structure.y[node_counter]) in y_coord_ailerons:
                         if i_local_node == 0:
                             cs_counter += 1
-                    control_surface[i_elem, i_local_node] = cs_counter# + n_cs_right
+                    control_surface[i_elem, i_local_node] = cs_counter + n_cs_right
                 if abs(self.structure.y[node_counter]) >= y_coord_ailerons[-1]:
                     cs_surface = False
             
         we += self.n_elem_main
         wn += self.n_node_main - 1
-        if not self.wing_only and tail:
+        if self.structure.tail:
             ###############
             # Fuselage
             ###############
@@ -349,7 +349,7 @@ class FLEXOPAero:
                         cs_surface = False
             we += self.n_elem_tail
             wn += self.n_node_tail
-            control_surface[control_surface==5] = 4
+            # control_surface[control_surface==5] = 4
             ###############
             # Left Tail
             ###############
@@ -383,11 +383,11 @@ class FLEXOPAero:
             node_counter = wn - 2
             for i_elem in range(we, we + self.n_elem_tail):
                 if control_surface[i_elem - self.n_elem_tail, 0] > -1:
-                    control_surface[i_elem, :] = control_surface[i_elem - self.n_elem_tail, :] #+ n_cs_right
+                    control_surface[i_elem, :] = control_surface[i_elem - self.n_elem_tail, :] + n_cs_right
 
             we += self.n_elem_tail
             wn += self.n_node_tail
-
+        np.savetxt("./cs_surfaces.csv", control_surface)
         with h5.File(self.route + '/' + self.case_name + '.aero.h5', 'a') as h5file:
             airfoils_group = h5file.create_group('airfoils')
             # add one airfoil
