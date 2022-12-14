@@ -4,6 +4,7 @@ This repository contains the [SHARPy](http://github.com/imperialcollegelondon/sh
 <p align="center">
 <img  src="doc/source/FLEXOP_white.png" alt="Aerodynamic FLEXOP model">
  </p>
+ 
 ## Installation
 
 Clone the repository to your local computer. It is intended for use within SHARPy so you must ensure that SHARPy is 
