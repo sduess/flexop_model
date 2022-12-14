@@ -2,7 +2,7 @@
 
 This repository contains the [SHARPy](http://github.com/imperialcollegelondon/sharpy) version of the equivalent FLEXOP model based on the European [FLEXOP project](https://flexop.eu/) with a detailed implementation description included in [1]. 
 
-![FLEXOP](https://github.com/sduess/flexop_model/doc/FLEXOP_white-eps-converted-to.pdf)
+![FLEXOP](https://github.com/sduess/flexop_model/blob/main/doc/FLEXOP_white-eps-converted-to.pdf)
 
 ## Installation
 
