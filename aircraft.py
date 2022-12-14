@@ -28,7 +28,14 @@ class FLEXOP:
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.source_directory = os.path.join(dir_path, 'aeroelastic_properties')
+        
         print(f'Looking for source files in {self.source_directory}')
+
+    def init_aeroelastic(self,**kwargs):
+        m = kwargs.get('m', 4)
+        self.clean()
+        self.init_structure()
+        self.init_aero(m=m, **kwargs)
 
     def init_structure(self, **kwargs):
         self.structure = FLEXOPStructure(self.case_name, self.case_route, self.source_directory, **kwargs)
