@@ -393,7 +393,7 @@ class FLEXOPAero:
 
             we += self.n_elem_tail
             wn += self.n_node_tail
-        np.savetxt("./cs_surfaces.csv", control_surface)
+            
         with h5.File(self.route + '/' + self.case_name + '.aero.h5', 'a') as h5file:
             airfoils_group = h5file.create_group('airfoils')
             # add one airfoil
