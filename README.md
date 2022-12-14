@@ -2,8 +2,7 @@
 
 This repository contains the [SHARPy](http://github.com/imperialcollegelondon/sharpy) version of the equivalent FLEXOP model based on the European [FLEXOP project](https://flexop.eu/) with a detailed implementation description included in [1]. 
 
-![FLEXOP](.doc/source/FLEXOP_white.png)
-
+<img src="doc/source/FLEXOP_white.png" alt="Aerodynamic FLEXOP model">
 ## Installation
 
 Clone the repository to your local computer. It is intended for use within SHARPy so you must ensure that SHARPy is 
