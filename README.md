@@ -1,22 +1,8 @@
-Pazy
-- Case 2
-- Gust vane
-
-
-For meeting:
-- overnight: beta newmark factor in closed-loop simulations
-- write paper
-- gust vanes m=8
-
-add [aero] ailerons controllable flag for closed-loop simulations
-- add input for user to specfiy ailerons to be controllable, i.e. allowing deflections set by network
-
-
 # FLEXOP Model for SHARPy
 
 This repository contains the [SHARPy](http://github.com/imperialcollegelondon/sharpy) version of the equivalent FLEXOP model based on the European [FLEXOP project](https://flexop.eu/) with a detailed implementation description included in [1]. 
 
-![FLEXOP](./doc/source/FLEXOP_white.png)
+![FLEXOP](https://github.com/sduess/flexop_model/doc/FLEXOP_white-eps-converted-to.pdf)
 
 ## Installation
 
