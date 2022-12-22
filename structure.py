@@ -131,7 +131,8 @@ class FLEXOPStructure:
 
     def generate(self):
         # Set Elements
-        tail = not self.wing_only
+        
+        self.tail = not self.wing_only
         self.n_elem_junction_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_junction_main < 1:
             self.n_elem_junction_main = 1
@@ -146,9 +147,6 @@ class FLEXOPStructure:
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
         self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
- 
-        if self.wing_only:
-            self.lifting_only = True
 
         # lumped masses
         df_lumped_masses = self.read_lumped_masses()
@@ -163,10 +161,10 @@ class FLEXOPStructure:
         
         # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
-        if not self.wing_only:
+        if not self.lifting_only:
             self.n_elem += self.n_elem_fuselage
-            if tail:
-                self.n_elem += self.n_elem_tail + self.n_elem_tail
+        if self.tail:
+            self.n_elem += self.n_elem_tail + self.n_elem_tail
 
         # number of nodes per part
         self.n_node_main = self.n_elem_main*(self.n_node_elem - 1) + 1
@@ -175,9 +173,9 @@ class FLEXOPStructure:
 
         # total number of nodes
         self.n_node = self.n_node_main + self.n_node_main - 1
-        if not self.wing_only:
+        if not self.lifting_only:
             self.n_node += self.n_node_fuselage - 1
-            if tail:
+            if self.tail:
                 self.n_node += self.n_node_tail - 1
                 self.n_node += self.n_node_tail - 1
 
@@ -185,12 +183,12 @@ class FLEXOPStructure:
         # Aeroelastic properties
         n_stiffness = self.n_stiffness_per_wing * 2
         n_mass = self.n_elem_main * 2
-        if not self.wing_only:
-            n_stiffness += 2
-            n_mass += 2
-            if not tail:
-                n_stiffness -= 1
-                n_mass -= 1
+        if not self.lifting_only:
+            n_stiffness += 1
+            n_mass += 1
+        if self.tail:
+            n_stiffness += 1
+            n_mass += 1
 
         m_bar_fuselage = 0.3 * 10
         j_bar_fuselage = 0.08
@@ -325,7 +323,7 @@ class FLEXOPStructure:
         boundary_conditions[wn-1] = -1 # tip left wing
 
             
-        if not self.wing_only:          
+        if not self.lifting_only or self.tail:   
             # remember this is in B FoR
             self.beam_number[we:we + self.n_elem_fuselage] = 2
             x_fuselage = np.linspace(0.0, length_fuselage, self.n_node_fuselage) - offset_wing_nose
@@ -362,7 +360,7 @@ class FLEXOPStructure:
                     break
             boundary_conditions[wn] = - 1
 
-            if tail:
+            if self.tail:
                 self.elem_stiffness[we:we + self.n_elem_fuselage] = n_stiffness - 2
                 self.elem_mass[we:we + self.n_elem_fuselage] = n_mass - 2
             else:
@@ -373,7 +371,7 @@ class FLEXOPStructure:
             wn += self.n_node_fuselage - 1
             boundary_conditions[wn - 1] = -1
             boundary_conditions[self.index_tail_start] = 0
-            if tail:
+            if self.tail: # TODO: use tail insteady of wing only to avoid confusion with no fuselage used
                 ###############
                 # right tail
                 ###############
@@ -434,21 +432,23 @@ class FLEXOPStructure:
         # lumped masses 
         self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
 
-        self.lumped_mass[-1] = 42 - 10.799 - 0.35833756498172# payload, kg
-        self.lumped_mass_position[-1, 0] = 0 
-        self.lumped_mass_position[-1, 1] = 0
-        self.lumped_mass_position[-1, 2] = -0.25
-        x_lm_payload = 0.2170 
-        if not self.wing_only:
+
+        if self.lifting_only and self.tail:
             # map payload to fuselage node
+            self.lumped_mass[-1] = 42 - 10.799 - 0.35833756498172# payload, kg
+            self.lumped_mass_position[-1, 0] = 0 
+            self.lumped_mass_position[-1, 1] = 0
+            self.lumped_mass_position[-1, 2] = -0.25
+            x_lm_payload = 0.2170 
             wn_fuselage_start = self.n_node_main  * 2- 1
             self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
             self.lumped_mass_position[-1, 0] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
 
-        else:
-            # map to wing junction node (Different local coordinate system)
-            self.lumped_mass_position[-1, 1] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
-            self.lumped_mass_nodes[-1] = 0
+
+        # else:
+        #     # map to wing junction node (Different local coordinate system)
+        #     self.lumped_mass_position[-1, 1] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
+        #     self.lumped_mass_nodes[-1] = 0
         
         # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
@@ -457,13 +457,13 @@ class FLEXOPStructure:
             self.mass[i, ...] =  list_mass_matrix[i]
         for i in range(int(self.n_elem_main * 2)):
             self.mass[i, ...] =  list_mass_matrix[i]
-        if not self.wing_only:
+        if not self.lifting_only or self.tail:
             ea = 1e7
             ga = 1e5
             gj = 1e4
             eiy = 2e4
             eiz = 4e6
-            if tail:
+            if self.tail:
                 stiffness[-2, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_fuselage
                 stiffness[-1, ...] = np.diag([ea, ga, ga, gj, eiy, eiz])*sigma_tail
 

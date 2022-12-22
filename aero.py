@@ -61,7 +61,6 @@ class FLEXOPAero:
         
         Key-Word Arguments:
             - cs_deflection (float): Elevator control surface deflection
-            - rudder_deflection (float): rudder deflection
             - polars (list(np.array)): 4-column array for AoA (rad), Cl, Cd, Cm of each airfoil polar
         """
         self.m = m
@@ -71,7 +70,6 @@ class FLEXOPAero:
         self.case_name = case_name
 
         self.cs_deflection = kwargs.get('cs_deflection', 0.)
-        self.rudder_deflection = kwargs.get('rudder_deflection', 0.)
 
         self.chord_main_root = chord_main_root
         self.chord_tail_root = chord_tail_root        
@@ -90,7 +88,7 @@ class FLEXOPAero:
         self.ailerons_controllable = kwargs.get('ailerons_controllable', False)
 
     def generate(self):
-        tail = not self.wing_only
+        tail = not self.wing_only and self.lifting_only
         n_surfaces = 2
         if not self.wing_only:
             n_surfaces += 2
@@ -290,10 +288,11 @@ class FLEXOPAero:
             
         we += self.n_elem_main
         wn += self.n_node_main - 1
-        if not self.wing_only and tail:
+        if self.structure.tail:
             ###############
             # Fuselage
             ###############
+            aero_node[wn:wn+self.n_node_fuselage - 2] = False
             we += self.n_elem_fuselage
             wn += self.n_node_fuselage - 1 - 1
             #
@@ -311,7 +310,7 @@ class FLEXOPAero:
 
             if self.lifting_only:
                 aero_node[self.structure.index_tail_start] = True
-                aero_node[wn:wn + self.n_node_tail] = True
+                aero_node[wn+1:wn + self.n_node_tail] = True
             else:
                 aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04
             junction_boundary_condition_aero[0, i_surf] = 3 # BC at fuselage junction
