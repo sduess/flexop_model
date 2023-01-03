@@ -70,7 +70,7 @@ class FLEXOPFuselage:
         idx_junction = self.find_index_of_closest_entry(x_coord_fuselage, self.structure.x[0])
         x_coord_fuselage += abs(min(x_coord_fuselage))
 
-
+        self.fuselage_shape = 'forced_cylindrical'
         if self.fuselage_shape == 'cylindrical':
             self.length_fuselage = self.structure.x[wn+self.structure.n_node_fuselage-2] - self.structure.x[wn]
             self.radius[wn:wn + self.structure.n_node_fuselage-1] = self.cylindrical_fuselage(x_coord_fuselage, idx_junction)
@@ -87,6 +87,10 @@ class FLEXOPFuselage:
             a_ellipse[wn:wn + self.n_node_fuselage-1] =  a_ellipse_tmp
             b_ellipse[wn:wn + self.n_node_fuselage-1] =  b_ellipse_tmp
             z_0_ellipse[wn:wn + self.n_node_fuselage-1] =  z_0_ellipse_tmp
+            if self.fuselage_shape == 'forced_cylindrical':
+                self.fuselage_shape = 'cylindrical'
+                self.radius[wn:wn + self.structure.n_node_fuselage-1] =  a_ellipse[wn:wn + self.n_node_fuselage-1]
+                self.radius[0] = a_ellipse[0]
         
         with h5.File(self.route + '/' + self.case_name + '.nonlifting_body.h5', 'a') as h5file:
             h5file.create_dataset('shape', data=self.fuselage_shape)
@@ -161,8 +165,9 @@ class FLEXOPFuselage:
         y_coord_fuselage = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'y', True)
         z_coord_fuselage_upper = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'z', True)
         z_coord_fuselage_lower = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'z', False)
-        b_ellipse_tmp = (np.array(z_coord_fuselage_upper) - np.array(z_coord_fuselage_lower))/2.
-        z_0_ellipse_tmp = b_ellipse_tmp - abs(np.array(z_coord_fuselage_lower))
+        b_ellipse_tmp = y_coord_fuselage #(np.array(z_coord_fuselage_upper) - np.array(z_coord_fuselage_lower))/2.
+        z_0_ellipse_tmp = np.array(z_coord_fuselage_lower) *0. # b_ellipse_tmp - abs(np.array(z_coord_fuselage_lower))
+        z_0_ellipse_tmp = b_ellipse_tmp + np.array(z_coord_fuselage_lower)
         return y_coord_fuselage, b_ellipse_tmp, z_0_ellipse_tmp
 
     def interpolate_fuselage_geometry(self, x_coord_beam, df_fuselage, coord, upper_surface=True):
