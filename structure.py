@@ -447,8 +447,8 @@ class FLEXOPStructure:
 
         # else:
         #     # map to wing junction node (Different local coordinate system)
-        #     self.lumped_mass_position[-1, 1] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
-        #     self.lumped_mass_nodes[-1] = 0
+            self.lumped_mass_position[-1, 1] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
+            self.lumped_mass_nodes[-1] = 0
         
         # Stiffness and mass properties
         list_stiffness_matrix, list_mass_matrix, y_cross_sections = self.load_stiffness_and_mass_matrix_from_matlab_file()
