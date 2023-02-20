@@ -123,6 +123,8 @@ class FLEXOPStructure:
         self.v_tail_angle = v_tail_angle
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = 0.319923584301128
+        self.y_coord_ailerons = y_coord_ailerons
+        self.y_coord_elevators = y_coord_elevators
 
         self.source_directory = source_directory
 
@@ -245,9 +247,10 @@ class FLEXOPStructure:
         self.beam_number[we:we + self.n_elem_main] = 0
         # junction (part without ailerons)
         n_node_junctions = int(3 + 2*(self.n_elem_junction_main-1))
-        self.y[wn:wn + n_node_junctions] = np.linspace(0.0, y_coord_junction, n_node_junctions)
+
+        self.y[wn:wn + n_node_junctions] = np.linspace(0.0, self.y_coord_junction, n_node_junctions)
         n_node_root = int(3 + 2*(self.n_elem_root_main-1))
-        self.y[wn + n_node_junctions:wn + n_node_junctions+n_node_root-1] = np.linspace(y_coord_junction, y_coord_ailerons[0], n_node_root)[1:]
+        self.y[wn + n_node_junctions:wn + n_node_junctions+n_node_root-1] = np.linspace(self.y_coord_junction, self.y_coord_ailerons[0], n_node_root)[1:]
         
         n_nodes_per_cs = (self.n_elem_per_aileron)*2+1
         wn_end = 0
@@ -255,12 +258,12 @@ class FLEXOPStructure:
         for i_control_surface in range(self.n_ailerons_per_wing):
             wn_start = wn +  n_node_junctions -1 + n_node_root- 1 + i_control_surface*(n_nodes_per_cs-1)
             wn_end= wn_start + n_nodes_per_cs
-            self.y[wn_start:wn_end] = np.linspace(y_coord_ailerons[i_control_surface], 
-                                            y_coord_ailerons[i_control_surface+1], 
+            self.y[wn_start:wn_end] = np.linspace(self.y_coord_ailerons[i_control_surface], 
+                                            self.y_coord_ailerons[i_control_surface+1], 
                                             n_nodes_per_cs)  
         # Aileron to tip
-        self.y[wn_end:wn_end + n_node_tip-1] = np.linspace(y_coord_ailerons[-1], self.span_main*0.5, n_node_tip)[1:]
-        self.x[wn+n_node_junctions:wn + self.n_node_main] += (abs(self.y[wn+n_node_junctions:wn + self.n_node_main])-y_coord_junction) * np.tan(self.sweep_quarter_chord)
+        self.y[wn_end:wn_end + n_node_tip-1] = np.linspace(self.y_coord_ailerons[-1], self.span_main*0.5, n_node_tip)[1:]
+        self.x[wn+n_node_junctions:wn + self.n_node_main] += (abs(self.y[wn+n_node_junctions:wn + self.n_node_main])-self.y_coord_junction) * np.tan(self.sweep_quarter_chord)
     
         # Set stiffness, mass. For, and elastic axis
         self.elem_stiffness[we:we + self.n_elem_main] = 0

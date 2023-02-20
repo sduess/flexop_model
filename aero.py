@@ -190,7 +190,7 @@ class FLEXOPAero:
         if self.lifting_only:
                 aero_node[wn:wn + self.n_node_main] = True
         else:
-            aero_node[wn:wn + self.n_node_main] = abs(self.structure.y[wn:wn + self.n_node_main]) >= y_coord_junction  
+            aero_node[wn:wn + self.n_node_main] = abs(self.structure.y[wn:wn + self.n_node_main]) >= self.structure.y_coord_junction  
  
         n_node_junctions = int(3 + 2*(self.structure.n_elem_junction_main-1))
         junction_boundary_condition_aero[0, i_surf] = 1 # BC at fuselage junction
@@ -250,9 +250,9 @@ class FLEXOPAero:
         surface_m[i_surf] = m
 
         if self.lifting_only:
-            aero_node[wn:wn + self.n_node_main] = True
+            aero_node[wn:wn + self.n_node_main-1] = True
         else:
-            aero_node[wn:wn + self.n_node_main] = self.structure.y[wn:wn + self.n_node_main] <= -y_coord_junction
+            aero_node[wn:wn + self.n_node_main-1] = self.structure.y[wn:wn + self.n_node_main - 1] <= - self.structure.y_coord_junction
 
         junction_boundary_condition_aero[0, i_surf] = 0 # BC at fuselage junction
         temp_chord = temp_chord
@@ -290,7 +290,7 @@ class FLEXOPAero:
             # Fuselage
             ###############
             we += self.n_elem_fuselage
-            wn += self.n_node_fuselage - 1 - 1
+            wn += self.n_node_fuselage - 1
             #
             ###############
             # Right Tail
