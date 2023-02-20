@@ -46,7 +46,6 @@ tail_sweep_quarter_chord = np.arctan((tail_x_tip+tail_chord_tip/4-tail_chord_roo
 
 v_tail_angle = np.deg2rad(35.)
 tail_sweep_quarter_chord
-span_tail = 2.5
 ea_tail = 0.5
 sigma_tail = 10
 m_bar_tail = 0.3
@@ -78,7 +77,7 @@ class FLEXOPStructure:
         self.sigma = kwargs.get('sigma', 1)
         self.n_elem_multiplier = kwargs.get('n_elem_multiplier', 1.5)
         self.n_elem_multiplier_fuselage = kwargs.get('n_elem_multiplier_fuselage', 2)
-
+        self.fuselage_radius_enlargement_factor = kwargs.get('fuselage_radius_enlargement_factor', 1)
         self.route = case_route
         self.case_name = case_name
 
@@ -109,7 +108,6 @@ class FLEXOPStructure:
         self.n_node_tail = None
 
         self.span_main = span_main
-        self.span_tail = span_tail
         self.y_coord_junction = y_coord_junction # Radius fuselage at wing
 
         self.wing_only = kwargs.get('wing_only', True)
@@ -138,6 +136,14 @@ class FLEXOPStructure:
         self.n_elem_junction_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_junction_main < 1:
             self.n_elem_junction_main = 1
+        self.correct_junction_length = 0
+        if self.fuselage_radius_enlargement_factor != 1:
+            self.n_elem_junction_main *= self.fuselage_radius_enlargement_factor
+            self.correct_junction_length = self.y_coord_junction*(self.fuselage_radius_enlargement_factor - 1)
+            self.y_coord_ailerons += self.correct_junction_length
+            self.span_main += self.correct_junction_length
+            self.y_coord_junction += self.correct_junction_length
+
         self.n_elem_root_main = int(1*self.n_elem_multiplier)
         self.n_elem_tip_main = int(0.5*self.n_elem_multiplier)
         if self.n_elem_tip_main < 1:
@@ -147,12 +153,20 @@ class FLEXOPStructure:
 
         self.n_elem_per_elevator =  int(3*self.n_elem_multiplier)
         self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
+
+        self.correct_tail_junction_length = 0
+        if self.fuselage_radius_enlargement_factor != 1:
+            self.n_elem_junction_tail *= self.fuselage_radius_enlargement_factor
+            self.correct_tail_junction_length = self.y_coord_elevators[0]*(self.fuselage_radius_enlargement_factor - 1)
+            self.y_coord_elevators += self.correct_tail_junction_length
+            self.span_main += self.correct_tail_junction_length
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
         self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
 
         # lumped masses
         df_lumped_masses = self.read_lumped_masses()
         n_lumped_mass_wing = df_lumped_masses.shape[0]
+        df_lumped_masses.iloc[:,1] += self.correct_junction_length
         n_lumped_mass = n_lumped_mass_wing * 2
         if not self.wing_only:
             n_lumped_mass += 2 #for payload, engine, fuel, system
@@ -163,7 +177,7 @@ class FLEXOPStructure:
         
         # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
-        if not self.lifting_only:
+        if (not self.lifting_only) or self.tail:
             self.n_elem += self.n_elem_fuselage
         if self.tail:
             self.n_elem += self.n_elem_tail + self.n_elem_tail
@@ -175,7 +189,7 @@ class FLEXOPStructure:
 
         # total number of nodes
         self.n_node = self.n_node_main + self.n_node_main - 1
-        if not self.lifting_only:
+        if (not self.lifting_only) or self.tail:
             self.n_node += self.n_node_fuselage - 1
             if self.tail:
                 self.n_node += self.n_node_tail - 1
@@ -185,7 +199,7 @@ class FLEXOPStructure:
         # Aeroelastic properties
         n_stiffness = self.n_stiffness_per_wing * 2
         n_mass = self.n_elem_main * 2
-        if not self.lifting_only:
+        if (not self.lifting_only) or self.tail:
             n_stiffness += 1
             n_mass += 1
         if self.tail:
@@ -221,6 +235,7 @@ class FLEXOPStructure:
 
         list_spanwise_shear_center = self.read_spanwise_shear_center()
         y_cross_sections = self.load_y_cross_sections()
+        y_cross_sections += self.correct_junction_length
         # Load data from file
         if self.material == "reference":
             file = self.source_directory + '/dynamics_reference.mat'
@@ -436,7 +451,7 @@ class FLEXOPStructure:
         self.place_lumped_masses_wing(df_lumped_masses, n_lumped_mass_wing)
 
 
-        if self.lifting_only and self.tail:
+        if not self.lifting_only or self.tail:
             # map payload to fuselage node
             self.lumped_mass[-1] = 42 - 10.799 - 0.35833756498172# payload, kg
             self.lumped_mass_position[-1, 0] = 0 

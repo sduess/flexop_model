@@ -308,7 +308,7 @@ class FLEXOPAero:
                 aero_node[self.structure.index_tail_start] = True
                 aero_node[wn:wn + self.n_node_tail] = True
             else:
-                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04
+                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] >= 0.04 * self.structure.fuselage_radius_enlargement_factor
             junction_boundary_condition_aero[0, i_surf] = 3 # BC at fuselage junction
             
             temp_chord = self.chord_tail_root - abs(self.structure.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_LE)) + abs(self.structure.y[wn:wn + self.n_node_tail]*np.tan(tail_sweep_TE))
@@ -362,7 +362,7 @@ class FLEXOPAero:
             if self.lifting_only:
                 aero_node[wn:wn + self.n_node_tail] = True
             else:
-                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] <= -0.04
+                aero_node[wn:wn + self.n_node_tail] = self.structure.y[wn:wn + self.n_node_tail] <= -0.04 * self.structure.fuselage_radius_enlargement_factor
             junction_boundary_condition_aero[0, i_surf] = 2 # BC at fuselage junction
             node_counter = 0
             for i_elem in range(we, we + self.n_elem_tail):
@@ -435,6 +435,7 @@ class FLEXOPAero:
         # TODO: Find function for the interpolation (there must be one out there)
         df_jig_twist = pd.read_csv(self.source_directory + '/jig_twist.csv',
                                 sep=';')
+        df_jig_twist.iloc[:,0] += self.structure.correct_junction_length
         idx_closest_value = self.find_index_of_closest_entry(df_jig_twist.iloc[:,0], y_coord)
         if self.structure.material == "reference":
             column = 1

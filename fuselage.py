@@ -76,6 +76,8 @@ class FLEXOPFuselage:
             self.radius[wn:wn + self.structure.n_node_fuselage-1] = self.cylindrical_fuselage(x_coord_fuselage, idx_junction)
         else:
             a_ellipse_tmp, b_ellipse_tmp, z_0_ellipse_tmp = self.generate_fuselage_geometry(x_coord_fuselage)
+            a_ellipse_tmp *= self.structure.fuselage_radius_enlargement_factor
+            b_ellipse_tmp *= self.structure.fuselage_radius_enlargement_factor
             a_ellipse[0] = a_ellipse_tmp[idx_junction]
             b_ellipse[0] = b_ellipse_tmp[idx_junction]
             z_0_ellipse[0] = z_0_ellipse_tmp[idx_junction]
@@ -119,6 +121,7 @@ class FLEXOPFuselage:
         radius_fuselage = np.delete(radius_fuselage,idx_junction)
         print(self.radius[0])
         return radius_fuselage
+
     def add_nose_or_tail_shape(self, idx, array_x, x_transition, radius_fuselage, nose = True):
         if nose:
             x_nose = np.append(array_x[:idx],x_transition)
@@ -130,6 +133,7 @@ class FLEXOPFuselage:
             shape = self.create_ellipsoid(x_tail, x_tail[-1]-x_tail[0], radius_fuselage, False)
             shape = shape[1:]
         return shape
+
     def create_ellipsoid(self, x_geom, a, b, flip):
         len_initial = len(x_geom)
         x_geom -= x_geom.max()
@@ -160,6 +164,7 @@ class FLEXOPFuselage:
         if array_radius[-2] == 0.0:
             array_radius[idx_cylinder_end:] =  array_radius[idx_cylinder_end-1:-1]
         return array_radius 
+        
     def generate_fuselage_geometry(self, x_coord_fuselage):
         df_fuselage = pd.read_csv(self.source_directory + '/fuselage_geometry.csv', sep=";")
         y_coord_fuselage = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'y', True)
@@ -168,7 +173,7 @@ class FLEXOPFuselage:
         b_ellipse_tmp = y_coord_fuselage #(np.array(z_coord_fuselage_upper) - np.array(z_coord_fuselage_lower))/2.
         z_0_ellipse_tmp = np.array(z_coord_fuselage_lower) *0. # b_ellipse_tmp - abs(np.array(z_coord_fuselage_lower))
         z_0_ellipse_tmp = b_ellipse_tmp + np.array(z_coord_fuselage_lower)
-        return y_coord_fuselage, b_ellipse_tmp, z_0_ellipse_tmp
+        return np.array(y_coord_fuselage), np.array(b_ellipse_tmp), z_0_ellipse_tmp
 
     def interpolate_fuselage_geometry(self, x_coord_beam, df_fuselage, coord, upper_surface=True):
         if coord == 'y':
