@@ -87,7 +87,7 @@ class FLEXOPAero:
         self.polars = kwargs.get('polars', None)
         self.source_directory = source_directory
 
-        self.ailerons_controllable = kwargs.get('ailerons_controllable', False)
+        self.ailerons_type = kwargs.get('ailerons_type', False)
 
     def generate(self):
         tail = not self.wing_only
@@ -133,32 +133,27 @@ class FLEXOPAero:
         control_surface_chord = np.zeros((n_control_surfaces, ), dtype=int)
         control_surface_hinge_coord = np.zeros((n_control_surfaces, ), dtype=float)
         # aileron 1 right
-        control_surface_type[0] = 0
         control_surface_deflection[0] = 0
         control_surface_chord[0] = m/4 # 0.25
         control_surface_hinge_coord[0] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
 
         # aileron 2 right
-        control_surface_type[1] = 0
         control_surface_deflection[1] = 0
         control_surface_chord[1] = m/4 # 0.25
         control_surface_hinge_coord[1] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
 
         # aileron 3 right
-        control_surface_type[2] = 0
         control_surface_deflection[2] =  0
         control_surface_chord[2] = m/4 # 0.25
         control_surface_hinge_coord[2] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
         
         # aileron 4 right
-        control_surface_type[3] = 0
         control_surface_deflection[3] =  np.deg2rad(0)
         control_surface_chord[3] = m/4 # 0.25
         control_surface_hinge_coord[3] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
-        # TODO: Setup right elevator chord length
 
-        if self.ailerons_controllable:
-            control_surface_type[:4] = 2
+        control_surface_type[:4] = self.ailerons_type
+        # TODO: Setup right elevator chord length
         if not self.wing_only:
             # rudder 1 - used for trim
             control_surface_type[4]  = 0
