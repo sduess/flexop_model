@@ -87,7 +87,7 @@ class FLEXOPAero:
         self.polars = kwargs.get('polars', None)
         self.source_directory = source_directory
 
-        self.ailerons_type = kwargs.get('ailerons_type', False)
+        self.ailerons_type = kwargs.get('ailerons_type', 0)
 
     def generate(self):
         tail = not self.wing_only
