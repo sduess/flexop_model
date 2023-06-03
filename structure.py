@@ -77,6 +77,7 @@ class FLEXOPStructure:
         self.material = material
         self.sigma = kwargs.get('sigma', 1)
         self.n_elem_multiplier = kwargs.get('n_elem_multiplier', 1.5)
+        self.n_elem_multiplier_tail = kwargs.get('n_elem_multiplier_tail', self.n_elem_multiplier)
         self.n_elem_multiplier_fuselage = kwargs.get('n_elem_multiplier_fuselage', 2)
 
         self.route = case_route
@@ -142,8 +143,8 @@ class FLEXOPStructure:
         self.n_elem_per_aileron = int(4*self.n_elem_multiplier)
         self.n_elem_main = int(self.n_elem_junction_main + self.n_elem_root_main + self.n_ailerons_per_wing * self.n_elem_per_aileron + self.n_elem_tip_main)
 
-        self.n_elem_per_elevator =  int(3*self.n_elem_multiplier)
-        self.n_elem_junction_tail = int(2*self.n_elem_multiplier)
+        self.n_elem_per_elevator =  int(3*self.n_elem_multiplier_tail)
+        self.n_elem_junction_tail = int(2*self.n_elem_multiplier_tail)
         self.n_elem_tail = int(self.n_elem_junction_tail + self.n_elev_per_tail_surf * self.n_elem_per_elevator)
         self.n_elem_fuselage = int(10*self.n_elem_multiplier_fuselage) + 1
  
@@ -414,8 +415,8 @@ class FLEXOPStructure:
                 self.beam_number[we:we + self.n_elem_tail] = 4
 
                 self.y[wn:wn + self.n_node_tail - 1] = -self.y[wn-self.n_node_tail+1:wn]
-                self.x[wn:wn + self.n_node_main - 1] = self.x[wn-self.n_node_tail+1:wn]
-                self.z[wn:wn + self.n_node_main - 1] = self.z[wn-self.n_node_tail+1:wn]
+                self.x[wn:wn + self.n_node_tail - 1] = self.x[wn-self.n_node_tail+1:wn]
+                self.z[wn:wn + self.n_node_tail - 1] = self.z[wn-self.n_node_tail+1:wn]
 
         
                 self.elem_stiffness[we:we + self.n_elem_tail] = n_stiffness - 1
