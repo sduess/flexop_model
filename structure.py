@@ -37,7 +37,6 @@ tail_sweep_LE = np.deg2rad(19.51951)
 tail_sweep_TE = np.deg2rad(18.0846)
 half_tail_span = 1.318355
 tail_span = 2*half_tail_span
-# TODO: Get correct values
 
 # calculated inputs
 tail_x_tip = half_tail_span*np.tan(tail_sweep_LE)
@@ -162,10 +161,10 @@ class FLEXOPStructure:
         
         # total number of elements
         self.n_elem = self.n_elem_main + self.n_elem_main
-        if not self.lifting_only:
+        if not self.lifting_only or self.tail:
             self.n_elem += self.n_elem_fuselage
-        if self.tail:
-            self.n_elem += self.n_elem_tail + self.n_elem_tail
+            if self.tail:
+                self.n_elem += self.n_elem_tail + self.n_elem_tail
 
         # number of nodes per part
         self.n_node_main = self.n_elem_main*(self.n_node_elem - 1) + 1
@@ -174,7 +173,7 @@ class FLEXOPStructure:
 
         # total number of nodes
         self.n_node = self.n_node_main + self.n_node_main - 1
-        if not self.lifting_only:
+        if not self.lifting_only or self.tail:
             self.n_node += self.n_node_fuselage - 1
             if self.tail:
                 self.n_node += self.n_node_tail - 1
@@ -184,12 +183,12 @@ class FLEXOPStructure:
         # Aeroelastic properties
         n_stiffness = self.n_stiffness_per_wing * 2
         n_mass = self.n_elem_main * 2
-        if not self.lifting_only:
+        if not self.lifting_only or self.tail:
             n_stiffness += 1
             n_mass += 1
-        if self.tail:
-            n_stiffness += 1
-            n_mass += 1
+            if self.tail:
+                n_stiffness += 1
+                n_mass += 1
 
         m_bar_fuselage = 0.3 * 10
         j_bar_fuselage = 0.08
