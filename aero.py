@@ -4,10 +4,6 @@ import numpy as np
 import pandas as pd
 from structure import span_main
 
-
-# TODO:
-# - solution for all the global parameters
-# - set elastic axis
 span_main = 7.07
 half_wing_span = span_main*0.5
 sweep_LE_main = np.deg2rad(20.)
@@ -21,7 +17,7 @@ sweep_TE_main= np.arctan((x_tip + chord_main_tip - chord_main_root)/(half_wing_s
 
 
 # Geometry parameters tail
-chord_tail_root = 0.34 #0.21717159844088685
+chord_tail_root = 0.34
 chord_tail_tip = 0.180325
 
 v_tail_angle =  np.deg2rad(35.)
@@ -43,7 +39,6 @@ y_coord_ailerons= np.array([0.862823, 2.820273, 4.301239, 5.653424, 6.928342])/2
 numb_elevators = 2
 y_coord_elevators = np.array([0.258501, 0.788428, 1.318355])/2.
 
-# TODO: Adjust
 chord_fin = 0.5
 ea_main = 0.3
 ea_fin = 0.5
@@ -85,10 +80,9 @@ class FLEXOPAero:
         self.polars = kwargs.get('polars', None)
         self.source_directory = source_directory
 
-        self.ailerons_controllable = kwargs.get('ailerons_controllable', False)
+        self.ailerons_type = kwargs.get('ailerons_type', 0)
 
     def generate(self):
-        tail = not self.wing_only and self.lifting_only
         n_surfaces = 2
         if not self.wing_only:
             n_surfaces += 2
@@ -131,47 +125,37 @@ class FLEXOPAero:
         control_surface_chord = np.zeros((n_control_surfaces, ), dtype=int)
         control_surface_hinge_coord = np.zeros((n_control_surfaces, ), dtype=float)
         # aileron 1 right
-        control_surface_type[0] = 0
         control_surface_deflection[0] = 0
-        control_surface_chord[0] = m/4 # 0.25
-        control_surface_hinge_coord[0] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
+        control_surface_chord[0] = m/4
+        control_surface_hinge_coord[0] = -0.
 
         # aileron 2 right
-        control_surface_type[1] = 0
         control_surface_deflection[1] = 0
-        control_surface_chord[1] = m/4 # 0.25
-        control_surface_hinge_coord[1] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
+        control_surface_chord[1] = m/4
+        control_surface_hinge_coord[1] = -0.
 
         # aileron 3 right
-        control_surface_type[2] = 0
         control_surface_deflection[2] =  0
-        control_surface_chord[2] = m/4 # 0.25
-        control_surface_hinge_coord[2] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
+        control_surface_chord[2] = m/4
+        control_surface_hinge_coord[2] = -0. 
         
         # aileron 4 right
-        control_surface_type[3] = 0
         control_surface_deflection[3] =  np.deg2rad(0)
-        control_surface_chord[3] = m/4 # 0.25
-        control_surface_hinge_coord[3] = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
-        # TODO: Setup right elevator chord length
+        control_surface_chord[3] = m/4
+        control_surface_hinge_coord[3] = -0.
 
-        if self.ailerons_controllable:
-            control_surface_type[:4] = 2
+        control_surface_type[:4] = self.ailerons_type
         if not self.wing_only:
             # rudder 1 - used for trim
             control_surface_type[4]  = 0
             control_surface_deflection[4]  = np.deg2rad(self.cs_deflection)
-            control_surface_chord[4]  =  m/2 # Flexop's elevator cs have a ,chord of 36%. problems with aerogrid discretization
-            control_surface_hinge_coord[4]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
-            # rudder 2
+            control_surface_chord[4]  =  m/2 
+            control_surface_hinge_coord[4]  = -0.
             control_surface_type[5]  = 0
-            control_surface_deflection[5]  = np.deg2rad(self.cs_deflection)# np.deg2rad(self.cs_deflection)
-            control_surface_chord[5]  = m/2  # Flexop@s elevator cs have a ,chord of 36%. problems with aerogrid discretization
-            control_surface_hinge_coord[5]  = -0. # nondimensional wrt elastic axis (+ towards the trailing edge)
+            control_surface_deflection[5]  = np.deg2rad(self.cs_deflection)
+            control_surface_chord[5]  = m/2 
+            control_surface_hinge_coord[5]  = -0.
        
-        # list_cs_deflection_test = [-45, 45, -60, 60, -30, 30]
-        # for i in range(int(n_control_surfaces/2)):
-        #     control_surface_deflection[i] = np.deg2rad(list_cs_deflection_test[i])
         n_cs_right = int(n_control_surfaces/2)
         for i_cs_right in range(n_cs_right):
             i_cs_left = n_cs_right + i_cs_right
@@ -179,6 +163,7 @@ class FLEXOPAero:
             control_surface_type[i_cs_left] = control_surface_type[i_cs_right] 
             control_surface_chord[i_cs_left] = control_surface_chord[i_cs_right] 
             control_surface_hinge_coord[i_cs_left] = control_surface_hinge_coord[i_cs_right] 
+        
         ###############
         # right wing
         ###############
@@ -211,19 +196,14 @@ class FLEXOPAero:
                 inode = node_counter
                 if i_local_node == 1:                
                     inode += 1
-                    # chord[i_elem, i_local_node] = temp_chord[node_counter + 1]
                 elif i_local_node == 2:
                     inode -= 1
-                    # chord[i_elem, i_local_node] = temp_chord[node_counter - 1]
                 chord[i_elem, i_local_node] = temp_chord[inode]
-                # TODO: Set elastic axis
-                # elastic_axis[i_elem, i_local_node] *= chord[i_elem, i_local_node]
                 sweep[i_elem, i_local_node] = temp_sweep[node_counter]
                 # get jig twist            
                 twist[i_elem, i_local_node] = -self.get_jigtwist_from_y_coord(self.structure.y[wn + inode])
                 elastic_axis[i_elem, i_local_node] = list_spanwise_shear_center[structure.elem_stiffness[i_elem]]
             global_node_counter += 2
-            s_surface = False
 
         node_counter = 0
         cs_counter = -1
@@ -302,11 +282,8 @@ class FLEXOPAero:
             i_surf = 2
             
             airfoil_distribution[we:we + self.n_elem_tail, :] = 2
-            # airfoil_distribution[wn:wn + self.n_node_tail] = 0
             surface_distribution[we:we + self.n_elem_tail] = i_surf
             surface_m[i_surf] = m
-            # XXX not very elegant
-            # aero_node[wn:] = True
 
             if self.lifting_only:
                 aero_node[self.structure.index_tail_start] = True
@@ -431,12 +408,11 @@ class FLEXOPAero:
 
             if self.polars is not None:
                 polars_group = h5file.create_group('polars')
-                for i_airfoil in range(3):  # there are three airfoils
+                for i_airfoil in range(3):  # there are three airfoils (root, tip, tail)
                     polars_group.create_dataset('{:g}'.format(i_airfoil), data=self.polars[i_airfoil])
 
     def get_jigtwist_from_y_coord(self, y_coord):
         y_coord = abs(y_coord)
-        # TODO: Find function for the interpolation (there must be one out there)
         df_jig_twist = pd.read_csv(self.source_directory + '/jig_twist.csv',
                                 sep=';')
         idx_closest_value = self.find_index_of_closest_entry(df_jig_twist.iloc[:,0], y_coord)
