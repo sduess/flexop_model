@@ -285,7 +285,7 @@ class FLEXOPAero:
             ###############
             i_surf = 2
             
-            airfoil_distribution[we:we + self.n_elem_tail, :] = 2
+            airfoil_distribution[we:we + self.n_elem_tail, :] = 1
             surface_distribution[we:we + self.n_elem_tail] = i_surf
             surface_m[i_surf] = m
 
@@ -340,7 +340,7 @@ class FLEXOPAero:
             # Left Tail
             ###############
             i_surf = 3
-            airfoil_distribution[we:we + self.n_elem_tail, :] = 2
+            airfoil_distribution[we:we + self.n_elem_tail, :] = 1
             surface_distribution[we:we + self.n_elem_tail] = i_surf
             surface_m[i_surf] = m
 
@@ -412,7 +412,7 @@ class FLEXOPAero:
 
             if self.polars is not None:
                 polars_group = h5file.create_group('polars')
-                for i_airfoil in range(3):  # there are three airfoils (root, tip, tail)
+                for i_airfoil in range(2):  # there are three airfoils (root, tip, tail)
                     polars_group.create_dataset('{:g}'.format(i_airfoil), data=self.polars[i_airfoil])
 
     def get_jigtwist_from_y_coord(self, y_coord):
