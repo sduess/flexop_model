@@ -36,6 +36,8 @@ class FLEXOP:
         self.clean()
         self.init_structure()
         self.init_aero(m=m, **kwargs)
+        if kwargs.get('nonlifting_interactions', False):
+            self.init_fuselage(**kwargs)
 
     def init_structure(self, **kwargs):
         self.structure = FLEXOPStructure(self.case_name, self.case_route, self.source_directory, **kwargs)
