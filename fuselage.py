@@ -19,8 +19,8 @@ class FLEXOPFuselage:
         self.n_nonlifting_bodies = n_nonlifting_bodies
         self.source_directory = source_directory
 
-        self.fuselage_shape = kwargs.get('fuselage_shape', 'specific')
-        assert self.fuselage_shape in ['cylindrical', 'specific'], 'Fuselage shape {} not supported'.format(self.fuselage_shape)
+        self.fuselage_shape = kwargs.get('fuselage_shape', 'rotation_symmetric')
+        assert self.fuselage_shape in ['cylindrical', 'specific', 'rotation_symmetric'], 'Fuselage shape {} not supported'.format(self.fuselage_shape)
 
     def generate(self): 
 
@@ -82,14 +82,18 @@ class FLEXOPFuselage:
 
 
             a_ellipse_tmp= np.delete(a_ellipse_tmp,idx_junction)
-            b_ellipse_tmp= np.delete(b_ellipse_tmp,idx_junction)
-            z_0_ellipse_tmp= np.delete(z_0_ellipse_tmp,idx_junction)
-            a_ellipse[wn:wn + self.n_node_fuselage-1] =  a_ellipse_tmp
-            b_ellipse[wn:wn + self.n_node_fuselage-1] =  b_ellipse_tmp
-            z_0_ellipse[wn:wn + self.n_node_fuselage-1] =  z_0_ellipse_tmp
-        
+            if self.fuselage_shape == 'rotation_symmetric':
+                self.radius[wn:wn + self.structure.n_node_fuselage-1] =  a_ellipse_tmp
+                self.radius[0] = a_ellipse[0]
+                self.fuselage_shape = 'cylindrical'
+            else:
+                b_ellipse_tmp= np.delete(b_ellipse_tmp,idx_junction)
+                z_0_ellipse_tmp= np.delete(z_0_ellipse_tmp,idx_junction)
+                a_ellipse[wn:wn + self.n_node_fuselage-1] =  a_ellipse_tmp
+                b_ellipse[wn:wn + self.n_node_fuselage-1] =  b_ellipse_tmp
+                z_0_ellipse[wn:wn + self.n_node_fuselage-1] =  z_0_ellipse_tmp
         with h5.File(self.route + '/' + self.case_name + '.nonlifting_body.h5', 'a') as h5file:
-            h5file.create_dataset('shape', data=self.fuselage_shape)
+            h5file.create_dataset('shape', data=self.fuselage_shape.encode('ascii', 'ignore'))
             h5file.create_dataset('a_ellipse', data=a_ellipse)
             h5file.create_dataset('b_ellipse', data=b_ellipse)
             h5file.create_dataset('z_0_ellipse', data=z_0_ellipse)
@@ -156,6 +160,7 @@ class FLEXOPFuselage:
         if array_radius[-2] == 0.0:
             array_radius[idx_cylinder_end:] =  array_radius[idx_cylinder_end-1:-1]
         return array_radius 
+    
     def generate_fuselage_geometry(self, x_coord_fuselage):
         df_fuselage = pd.read_csv(self.source_directory + '/fuselage_geometry.csv', sep=";")
         y_coord_fuselage = self.interpolate_fuselage_geometry(x_coord_fuselage, df_fuselage, 'y', True)
