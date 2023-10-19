@@ -81,6 +81,7 @@ class FLEXOPAero:
         self.source_directory = source_directory
 
         self.ailerons_type = kwargs.get('ailerons_type', 0)
+        self.elevators_type = kwargs.get('elevators_type', 0)
         self.get_number_of_control_surfaces()
  
 
@@ -131,31 +132,14 @@ class FLEXOPAero:
         control_surface_deflection = np.zeros((self.n_control_surfaces, ))
         control_surface_chord = np.zeros((self.n_control_surfaces, ), dtype=int)
         control_surface_hinge_coord = np.zeros((self.n_control_surfaces, ), dtype=float)
-        # aileron 1 right
-        control_surface_deflection[0] = 0
-        control_surface_chord[0] = m/4
-
-        # aileron 2 right
-        control_surface_deflection[1] = 0
-        control_surface_chord[1] = m/4
-
-        # aileron 3 right
-        control_surface_deflection[2] =  0
-        control_surface_chord[2] = m/4 
-        
-        # aileron 4 right
-        control_surface_deflection[3] =  np.deg2rad(0)
-        control_surface_chord[3] = m/4
-        control_surface_hinge_coord[3] = -0.
-
+        # aileron s right
+        control_surface_chord[:4] = m/4
+        control_surface_type[:4] = self.ailerons_type
         if not self.wing_only:
-            # rudder 1 - used for trim
-            control_surface_type[4]  = 0
+            # rudder right - inboard used for trim, outboard for load alleviation
             control_surface_deflection[4]  = np.deg2rad(self.cs_deflection)
-            control_surface_chord[4]  =  m/2 
-            control_surface_type[5]  = 0
-            control_surface_deflection[5]  = np.deg2rad(self.cs_deflection)
-            control_surface_chord[5]  = m/2 
+            control_surface_chord[4:6]  =  m/2 
+            control_surface_type[4:6] = self.elevators_type
        
         n_cs_right = int(self.n_control_surfaces/2)
         for i_cs_right in range(n_cs_right):
@@ -165,9 +149,7 @@ class FLEXOPAero:
             control_surface_chord[i_cs_left] = control_surface_chord[i_cs_right] 
             control_surface_hinge_coord[i_cs_left] = control_surface_hinge_coord[i_cs_right] 
 
-        
-        control_surface_type[:] = self.ailerons_type
-        
+               
         ###############
         # right wing
         ###############
