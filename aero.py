@@ -136,8 +136,8 @@ class FLEXOPAero:
         control_surface_chord[:4] = m/4
         control_surface_type[:4] = self.ailerons_type
         if not self.wing_only:
-            # rudder right - inboard used for trim, outboard for load alleviation
-            control_surface_deflection[4]  = np.deg2rad(self.cs_deflection)
+            # rudder right - inboard and outboard used for trimming
+            control_surface_deflection[4:6]  = np.deg2rad(self.cs_deflection)
             control_surface_chord[4:6]  =  m/2 
             control_surface_type[4:6] = self.elevators_type
        
