@@ -582,6 +582,7 @@ class FLEXOPStructure:
             # list_stiffness_matrix.append(np.diag(np.diagonal(np.array(matrices_cross_stiffness[counter:counter+6, :]))))
             stiffness_matrix_tmp = np.array(matrices_cross_stiffness[counter:counter+6, :])
             stiffness_matrix_tmp[0,0] /= self.sigma# reverse scaling of EA (caused in-plane bending problems)
+            stiffness_matrix_tmp[3,3] /= self.sigma# reverse scaling of GJ
             list_stiffness_matrix.append(stiffness_matrix_tmp)
             
             mass_matrix = np.zeros((6,6))
