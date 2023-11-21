@@ -580,7 +580,9 @@ class FLEXOPStructure:
         # Right wing
         while counter < matrices_cross_stiffness.shape[0]:
             # list_stiffness_matrix.append(np.diag(np.diagonal(np.array(matrices_cross_stiffness[counter:counter+6, :]))))
-            list_stiffness_matrix.append(np.array(matrices_cross_stiffness[counter:counter+6, :]))
+            stiffness_matrix_tmp = np.array(matrices_cross_stiffness[counter:counter+6, :])
+            stiffness_matrix_tmp[0,0] /= self.sigma# reverse scaling of EA (caused in-plane bending problems)
+            list_stiffness_matrix.append(stiffness_matrix_tmp)
             
             mass_matrix = np.zeros((6,6))
             # mass distribution
