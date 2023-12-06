@@ -123,7 +123,7 @@ class FLEXOPStructure:
         self.v_tail_angle = v_tail_angle
         self.tail_sweep_quarter_chord = tail_sweep_quarter_chord
         self.sweep_quarter_chord = 0.319923584301128
-
+        self.dx_payload = kwargs.get('delta_x_payload', 0.)
         self.source_directory = source_directory
 
     def set_thrust(self, value):
@@ -439,7 +439,7 @@ class FLEXOPStructure:
             self.lumped_mass_position[-1, 0] = 0 
             self.lumped_mass_position[-1, 1] = 0
             self.lumped_mass_position[-1, 2] = -0.25
-            x_lm_payload = 0.2170 
+            x_lm_payload = 0.2170 + self.dx_payload
             wn_fuselage_start = self.n_node_main  * 2- 1
             self.lumped_mass_nodes[-1] = wn_fuselage_start +  self.find_index_of_closest_entry(self.x[wn_fuselage_start:wn_fuselage_start + self.n_node_fuselage], x_lm_payload)
             self.lumped_mass_position[-1, 0] = x_lm_payload - self.x[self.lumped_mass_nodes[-1]]
