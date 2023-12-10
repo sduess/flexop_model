@@ -580,7 +580,9 @@ class FLEXOPStructure:
         # Right wing
         while counter < matrices_cross_stiffness.shape[0]:
             # list_stiffness_matrix.append(np.diag(np.diagonal(np.array(matrices_cross_stiffness[counter:counter+6, :]))))
-            list_stiffness_matrix.append(np.array(matrices_cross_stiffness[counter:counter+6, :]))
+            tmp_stiffness_matrix = np.array(matrices_cross_stiffness[counter:counter+6, :])
+            tmp_stiffness_matrix[5, 5] /= self.sigma/2
+            list_stiffness_matrix.append(tmp_stiffness_matrix)
             
             mass_matrix = np.zeros((6,6))
             # mass distribution
